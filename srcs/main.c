@@ -6,7 +6,7 @@
 /*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/05/11 11:45:13 by fventuri          #+#    #+#             */
-/*   Updated: 2017/05/11 13:27:46 by fventuri         ###   ########.fr       */
+/*   Updated: 2017/05/11 15:11:41 by mguillau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,26 +37,56 @@ void	print_all(void *ptr)
 	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
 }
 
-int		main(int ac, char **av)
+int					main(int ac, char **av)
 {
-	int			fd;
-	struct stat	s;
-	void		*ptr;
+	int				fd;
+	void			*m;
+	unsigned char	*p;
+	struct stat		buf;
 
-	if (ac < 2)
+	if (ac != 2)
+	{
+		printf("usage: %s [elf64-binary]\n", av[0]);
 		return (1);
+	}
+
 	if ((fd = open(av[1], O_RDONLY)) < 0)
+	{
+		perror("[!]");
 		return (1);
-	if (fstat(fd, &s) < 0)
-		return (1);
-	if ((ptr = mmap(0, s.st_size, PROT_READ, MAP_PRIVATE, fd, 0)) == MAP_FAILED)
-		return (1);
+	}
 
-	print_all(ptr);
+	if (fstat(fd, &buf) < 0)
+	{
+		perror("[!]");
+		return (1);
+	}
+	if ((m = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
+			== MAP_FAILED)
+	{
+		perror("[!]");
+		return (1);
+	}
 
-	if (munmap(ptr, s.st_size) < 0)
+	// check ELF64
+	p = m;
+	if (ft_memcmp(ELFMAG, m, SELFMAG) && p[EI_CLASS] != ELFCLASS64)
+	{
+		printf("[!] Provided binary file isn't an ELF64\n");
 		return (1);
-	if (close(fd) < 0)
+	}
+
+	print_all(m);
+	// Begin code injection
+	// output to file "woody"
+
+	// free memory
+	if (munmap(m, buf.st_size))
+	{
+		perror("[!]");
 		return (1);
+	}
+	close(fd);
+
 	return (0);
 }
