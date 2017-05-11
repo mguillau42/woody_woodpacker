@@ -6,7 +6,7 @@
 /*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/05/11 11:45:13 by fventuri          #+#    #+#             */
-/*   Updated: 2017/05/11 11:56:19 by fventuri         ###   ########.fr       */
+/*   Updated: 2017/05/11 13:08:07 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 
 void	print_all(void *ptr)
 {
-	Elf64_Ehdr	*hdr;
-
+	//Elf64_Ehdr	*hdr;
+	(void)ptr;
 }
 
 int		main(int ac, char **av)
