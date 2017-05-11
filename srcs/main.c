@@ -106,8 +106,8 @@ void					pack(void *m, struct stat *buf)
 		/* return ;*/
 	/* }*/
 	// copy until end of bss section
-	size_t to_copy = shdr->sh_offset + shdr->sh_size;
-	ft_memcpy(packed, m, to_copy);
+	/* size_t to_copy = shdr->sh_offset + shdr->sh_size;*/
+	ft_memcpy(packed, m, buf->st_size);
 	// inject code
 	//
 	//
@@ -115,6 +115,8 @@ void					pack(void *m, struct stat *buf)
 	/* ft_memcpy(packed + to_copy + 4096, m + to_copy, buf->st_size - to_copy);*/
 	// change header entry point
 	// change file size
+	hdr = packed;
+	hdr->e_ehsize += 4096;
 	// change nsects
 
 	printf("[+] generating packed file\n");
