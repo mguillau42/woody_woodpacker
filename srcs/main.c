@@ -12,10 +12,25 @@
 
 #include <woody.h>
 
+Elf64_Shdr	*get_section_64(Elf64_Ehdr *hdr, Elf64_Half index)
+{
+	Elf64_Shdr *shdr;
+
+	shdr = (void *)hdr + hdr->e_shoff;
+	for (int i = 0; i < hdr->e_shnum; i++)
+	{
+		if (i == index)
+			return (shdr);
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	}
+	return (NULL);
+}
+
 void	print_all(void *ptr)
 {
 	Elf64_Ehdr	*hdr;
 	Elf64_Shdr	*shdr;
+	Elf64_Shdr	*sh_strtable;
 	char		*strtable;
 	int			i;
 
@@ -39,25 +54,28 @@ void	print_all(void *ptr)
 	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
 
 	shdr = (void *)hdr + hdr->e_shoff;
-	strtable = (void *)hdr + hdr->e_shstrndx;
+	sh_strtable = get_section_64(hdr, hdr->e_shstrndx);
+	strtable = (void *)hdr + sh_strtable->sh_offset;
 	printf("Sections:\n");
 	for (int i = 0; i < hdr->e_shnum; i++)
 	{
 		printf("\t%s\n", strtable + shdr->sh_name);
-		shdr += sizeof(Elf64_Shdr);
+		/* if (shdr->sh_type == SHT_NOBITS)*/
+			/* printf("bss found\n");*/
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
 }
 
-int					pack(void *m, struct stat *buf)
-{
-	void			*packed;
-
-	if (!(packed = (void *)malloc(buf->st_size + 4096)))
-		return ;
-	// find bss section
-	
-	// output to file "woody"
-}
+//int					pack(void *m, struct stat *buf)
+//{
+//	void			*packed;
+//
+//	if (!(packed = (void *)malloc(buf->st_size + 4096)))
+//		return ;
+//	// find bss section
+//	
+//	// output to file "woody"
+//}
 
 int					main(int ac, char **av)
 {
@@ -101,7 +119,7 @@ int					main(int ac, char **av)
 
 	print_all(m);
 	// Begin code injection
-	pack(m);
+	//pack(m);
 
 	// free memory
 	if (munmap(m, buf.st_size))
