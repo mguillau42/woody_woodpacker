@@ -1,31 +1,27 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_memcmp.c                                        :+:      :+:    :+:   */
+/*   woody.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2014/11/10 11:28:56 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/10 20:45:52 by mguillau         ###   ########.fr       */
+/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
+/*   Updated: 2017/05/10 20:24:33 by mguillau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "libft.h"
+#ifndef WOODY_H
+# define WOODY_H
 
-int					ft_memcmp(const void *s1, const void *s2, size_t n)
-{
-	unsigned char	*p_s1;
-	unsigned char	*p_s2;
+# include "libft.h"
+# include <stdio.h>
+# include <fcntl.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <errno.h>
+# include <sys/mman.h>
+# include <elf.h>
 
-	p_s1 = (unsigned char *)s1;
-	p_s2 = (unsigned char *)s2;
-	while (n)
-	{
-		if (*p_s1 != *p_s2)
-			return (*p_s1 - *p_s2);
-		p_s1++;
-		p_s2++;
-		n--;
-	}
-	return (0);
-}
+
+
+#endif
