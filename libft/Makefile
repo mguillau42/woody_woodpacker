@@ -1,11 +1,11 @@
 NAME = libft.a
 CC = clang
 FLAGS = -Wall -Werror -Wextra
-INCLUDES = -I include -I ./ft_printf/includes
+INCLUDES = -I include
 SRC_D = source
 OBJS_D = obj
 
-SRCS =	ft_atoi.c ft_bzero.c ft_isalnum.c ft_isalpha.c ft_isascii.c \
+SRCS = ft_atoi.c ft_bzero.c ft_isalnum.c ft_isalpha.c ft_isascii.c \
 ft_isdigit.c ft_isprint.c ft_memccpy.c ft_memchr.c ft_memcmp.c \
 ft_memcpy.c ft_memset.c ft_memmove.c ft_putchar.c ft_putendl.c \
 ft_putnbr.c ft_putstr.c ft_strcat.c ft_strchr.c ft_strcmp.c \
@@ -22,12 +22,11 @@ ft_msg_display.c ft_strprev.c ft_freetab.c ft_tablen.c ft_lstaddfront.c ft_merge
 OBJS = $(SRCS:.c=.o)
 OBJ		:=	$(addprefix $(OBJS_D)/, $(OBJS))
 
-FT_PRINTF = ./ft_printf/libftprintf.a
-
 all: create_objd $(NAME)
 
-$(NAME): $(OBJ) $(FT_PRINTF)
-	libtool -static -o $@ $^
+$(NAME): $(OBJ)
+	ar rc $(NAME) $(OBJ)
+	ranlib $(NAME)
 
 create_objd: $(OBJS_D)
 
@@ -37,11 +36,7 @@ $(OBJS_D):
 $(OBJ): $(OBJS_D)/%.o : $(SRC_D)/%.c
 	$(CC) $(FLAGS) $(INCLUDES) -c $< -o $@
 
-$(FT_PRINTF):
-	make -C ./ft_printf
-
 clean:
-	make clean -C ./ft_printf
 	rm -rf $(OBJS_D)
 
 fclean: clean

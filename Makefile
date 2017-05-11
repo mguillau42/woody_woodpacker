@@ -1,7 +1,7 @@
 NAME = woody_woodpacker
 CC = clang
 FLAGS = -Wall -Werror -Wextra
-INCLUDES = -I ./include/ -I ./libft/include -I ./libft/ft_printf/includes
+INCLUDES = -I ./include/ -I ./libft/include
 LIBS = -L ./libft -lft
 SRC_D = source
 OBJS_D = obj

@@ -23,7 +23,6 @@
 # include <unistd.h>
 # include <stdlib.h>
 # include <string.h>
-# include "ft_printf.h"
 
 void				ft_putchar(char c);
 void				ft_putstr(char const *s);
