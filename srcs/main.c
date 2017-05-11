@@ -6,7 +6,7 @@
 /*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/05/11 11:45:13 by fventuri          #+#    #+#             */
-/*   Updated: 2017/05/11 15:11:41 by mguillau         ###   ########.fr       */
+/*   Updated: 2017/05/11 15:39:15 by mguillau         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 void	print_all(void *ptr)
 {
 	Elf64_Ehdr	*hdr;
+	Elf64_Shdr	*shdr;
+	char		*strtable;
 	int			i;
 
 	hdr = ptr;
@@ -35,6 +37,26 @@ void	print_all(void *ptr)
 	printf("\n\te_shentsize: %hu (%hX)", hdr->e_shentsize, hdr->e_shentsize);
 	printf("\n\te_shnum: %hu (%hX)", hdr->e_shnum, hdr->e_shnum);
 	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
+
+	shdr = (void *)hdr + hdr->e_shoff;
+	strtable = (void *)hdr + hdr->e_shstrndx;
+	printf("Sections:\n");
+	for (int i = 0; i < hdr->e_shnum; i++)
+	{
+		printf("\t%s\n", strtable + shdr->sh_name);
+		shdr += sizeof(Elf64_Shdr);
+	}
+}
+
+int					pack(void *m, struct stat *buf)
+{
+	void			*packed;
+
+	if (!(packed = (void *)malloc(buf->st_size + 4096)))
+		return ;
+	// find bss section
+	
+	// output to file "woody"
 }
 
 int					main(int ac, char **av)
@@ -61,6 +83,7 @@ int					main(int ac, char **av)
 		perror("[!]");
 		return (1);
 	}
+
 	if ((m = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
 			== MAP_FAILED)
 	{
@@ -78,7 +101,7 @@ int					main(int ac, char **av)
 
 	print_all(m);
 	// Begin code injection
-	// output to file "woody"
+	pack(m);
 
 	// free memory
 	if (munmap(m, buf.st_size))
