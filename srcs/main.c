@@ -12,9 +12,9 @@
 
 #include <woody.h>
 
-Elf64_Shdr	*get_section_64(Elf64_Ehdr *hdr, Elf64_Half index)
+Elf64_Shdr			*get_section_64(Elf64_Ehdr *hdr, Elf64_Half index)
 {
-	Elf64_Shdr *shdr;
+	Elf64_Shdr		*shdr;
 
 	shdr = (void *)hdr + hdr->e_shoff;
 	for (int i = 0; i < hdr->e_shnum; i++)
@@ -26,13 +26,13 @@ Elf64_Shdr	*get_section_64(Elf64_Ehdr *hdr, Elf64_Half index)
 	return (NULL);
 }
 
-void	print_all(void *ptr)
+void				print_all(void *ptr)
 {
-	Elf64_Ehdr	*hdr;
-	Elf64_Shdr	*shdr;
-	Elf64_Shdr	*sh_strtable;
-	char		*strtable;
-	int			i;
+	Elf64_Ehdr		*hdr;
+	Elf64_Shdr		*shdr;
+	Elf64_Shdr		*sh_strtable;
+	char			*strtable;
+	int				i;
 
 	hdr = ptr;
 	printf("Header:\n\te_ident: ");
@@ -54,28 +54,81 @@ void	print_all(void *ptr)
 	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
 
 	shdr = (void *)hdr + hdr->e_shoff;
+	// get shstrtable section
 	sh_strtable = get_section_64(hdr, hdr->e_shstrndx);
 	strtable = (void *)hdr + sh_strtable->sh_offset;
 	printf("Sections:\n");
 	for (int i = 0; i < hdr->e_shnum; i++)
 	{
-		printf("\t%s\n", strtable + shdr->sh_name);
-		/* if (shdr->sh_type == SHT_NOBITS)*/
-			/* printf("bss found\n");*/
+		printf("\t%s: offset %lu\n", strtable + shdr->sh_name, shdr->sh_offset);
 		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
 }
 
-//int					pack(void *m, struct stat *buf)
-//{
-//	void			*packed;
-//
-//	if (!(packed = (void *)malloc(buf->st_size + 4096)))
-//		return ;
-//	// find bss section
-//	
-//	// output to file "woody"
-//}
+Elf64_Shdr				*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type)
+{
+	Elf64_Shdr			*shdr;
+
+	shdr = (void *)hdr + hdr->e_shoff;
+	for (int i = 0; i < hdr->e_shnum; i++)
+	{
+		if (shdr->sh_type == type)
+			return (shdr);
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	}
+	return (shdr);
+}
+
+void					pack(void *m, struct stat *buf)
+{
+	Elf64_Ehdr			*hdr;
+	Elf64_Shdr			*shdr;
+	void				*packed;
+	size_t				packed_size;
+
+	packed_size = buf->st_size + 4096;
+	if (!(packed = (void *)malloc(packed_size)))
+		return ;
+
+	ft_bzero(packed, packed_size);
+	// find bss section
+	hdr = m;
+	shdr = (void *)hdr + hdr->e_shoff;
+	for (int i = 0; i < hdr->e_shnum - 1; i++)
+	{
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	}
+
+	printf("offset: %lu | size: %lu\n", shdr->sh_offset, shdr->sh_size);
+	/* if (!(shdr = get_section_bytype_64(hdr, SHT_NOBITS)))*/
+	/* {*/
+		/* printf("[!] bss not found\n");*/
+		/* return ;*/
+	/* }*/
+	// copy until end of bss section
+	size_t to_copy = shdr->sh_offset + shdr->sh_size;
+	ft_memcpy(packed, m, to_copy);
+	// inject code
+	//
+	//
+	// append rest
+	/* ft_memcpy(packed + to_copy + 4096, m + to_copy, buf->st_size - to_copy);*/
+	// change header entry point
+	// change file size
+	// change nsects
+
+	printf("[+] generating packed file\n");
+	int fd;
+
+	if ((fd = open("woody", O_RDWR | O_CREAT, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )) < 0)
+	{
+		perror("[!]");
+		return ;
+	}
+	write(fd, packed, packed_size);
+	close(fd);
+	free(packed);
+}
 
 int					main(int ac, char **av)
 {
@@ -119,7 +172,7 @@ int					main(int ac, char **av)
 
 	print_all(m);
 	// Begin code injection
-	//pack(m);
+	pack(m, &buf);
 
 	// free memory
 	if (munmap(m, buf.st_size))
