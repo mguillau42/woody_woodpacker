@@ -6,7 +6,7 @@
 /*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2017/05/11 11:45:13 by fventuri          #+#    #+#             */
-/*   Updated: 2017/05/11 13:08:07 by fventuri         ###   ########.fr       */
+/*   Updated: 2017/05/11 13:27:46 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,27 @@
 
 void	print_all(void *ptr)
 {
-	//Elf64_Ehdr	*hdr;
-	(void)ptr;
+	Elf64_Ehdr	*hdr;
+	int			i;
+
+	hdr = ptr;
+	printf("Header:\n\te_ident: ");
+	for (i = 0; i < EI_NIDENT; ++i) {
+		printf("%02X ", hdr->e_ident[i]);
+	}
+	printf("\n\te_type: %hu (%hX)", hdr->e_type, hdr->e_type);
+	printf("\n\te_machine: %hu (%hX)", hdr->e_machine, hdr->e_machine);
+	printf("\n\te_version: %u (%X)", hdr->e_version, hdr->e_version);
+	printf("\n\te_entry: %lu (%lX)", hdr->e_entry, hdr->e_entry);
+	printf("\n\te_phoff: %lu (%lX)", hdr->e_phoff, hdr->e_phoff);
+	printf("\n\te_shoff: %lu (%lX)", hdr->e_shoff, hdr->e_shoff);
+	printf("\n\te_flags: %u (%X)", hdr->e_flags, hdr->e_flags);
+	printf("\n\te_ehsize: %hu (%hX)", hdr->e_ehsize, hdr->e_ehsize);
+	printf("\n\te_phentsize: %hu (%hX)", hdr->e_phentsize, hdr->e_phentsize);
+	printf("\n\te_phnum: %hu (%hX)", hdr->e_phnum, hdr->e_phnum);
+	printf("\n\te_shentsize: %hu (%hX)", hdr->e_shentsize, hdr->e_shentsize);
+	printf("\n\te_shnum: %hu (%hX)", hdr->e_shnum, hdr->e_shnum);
+	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
 }
 
 int		main(int ac, char **av)
