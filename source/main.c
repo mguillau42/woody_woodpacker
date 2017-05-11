@@ -5,20 +5,24 @@
 #define CODE_OFFSET (phdr->p_offset + phdr->p_memsz)
 #define CODE_ADRESS (START_ADRESS + CODE_OFFSET)
 
-void				inject(void *m, struct stat *buf)
+void				inject(void *m)
 {
 	Elf64_Ehdr		*ehdr;
 	Elf64_Phdr		*phdr;
+	Elf64_Phdr		*next;
 
 	ehdr = (void*)m;
-	phdr = (void*)f_mmaped + ehdr->e_phoff;
+	phdr = (void*)m + ehdr->e_phoff;
 	printf("[+] Find free space\n");
-	for(i = 0; i < ehdr->e_phnum - 1; i++)
+	for(int i = 0; i < ehdr->e_phnum - 1; i++)
 	{
 		if(phdr->p_type == PT_LOAD)
 			break;
 		phdr++;
 	}
+
+	next = phdr + 1;
+
 	if(next->p_type != PT_LOAD || phdr->p_type != PT_LOAD)
 	{
 		printf("[!] Didn't find two PT_LOAD\n");
