@@ -1,27 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   woody.h                                            :+:      :+:    :+:   */
+/*   ft_strdel.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/11 11:47:24 by fventuri         ###   ########.fr       */
+/*   Created: 2014/11/05 11:54:04 by fventuri          #+#    #+#             */
+/*   Updated: 2014/12/13 17:07:34 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WOODY_H
-# define WOODY_H
+#include "../includes/libft.h"
+#include <stdlib.h>
 
-# include <elf.h>
-# include <errno.h>
-# include <fcntl.h>
-# include <stdio.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <unistd.h>
-
-# include <libft.h>
-
-#endif
+void	ft_strdel(char **as)
+{
+	if (as)
+	{
+		free(*as);
+		*as = NULL;
+	}
+}

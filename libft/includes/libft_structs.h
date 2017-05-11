@@ -1,27 +1,23 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   woody.h                                            :+:      :+:    :+:   */
+/*   libft_structs.h                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/11 11:47:24 by fventuri         ###   ########.fr       */
+/*   Created: 2015/01/06 09:18:48 by fventuri          #+#    #+#             */
+/*   Updated: 2015/03/31 17:17:09 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WOODY_H
-# define WOODY_H
+#ifndef LIBFT_STRUCTS_H
+# define LIBFT_STRUCTS_H
 
-# include <elf.h>
-# include <errno.h>
-# include <fcntl.h>
-# include <stdio.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <unistd.h>
-
-# include <libft.h>
+typedef struct			s_list
+{
+	void				*content;
+	size_t				content_size;
+	struct s_list		*next;
+}						t_list;
 
 #endif

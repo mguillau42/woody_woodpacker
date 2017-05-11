@@ -1,27 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   woody.h                                            :+:      :+:    :+:   */
+/*   ft_putnbr_base.c                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/11 11:47:24 by fventuri         ###   ########.fr       */
+/*   Created: 2015/01/02 19:44:44 by fventuri          #+#    #+#             */
+/*   Updated: 2015/01/06 10:28:08 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WOODY_H
-# define WOODY_H
+#include "../includes/libft.h"
 
-# include <elf.h>
-# include <errno.h>
-# include <fcntl.h>
-# include <stdio.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <unistd.h>
-
-# include <libft.h>
-
-#endif
+void		ft_putnbr_base(unsigned int n, unsigned int base)
+{
+	if (n > base - 1)
+	{
+		ft_putnbr_base(n / base, base);
+		ft_putnbr_base(n % base, base);
+	}
+	else
+		ft_putdigit_base(n, base);
+}

@@ -1,27 +1,29 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   woody.h                                            :+:      :+:    :+:   */
+/*   ft_strchr.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/11 11:47:24 by fventuri         ###   ########.fr       */
+/*   Created: 2014/11/04 15:26:15 by fventuri          #+#    #+#             */
+/*   Updated: 2014/12/13 17:03:57 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WOODY_H
-# define WOODY_H
+#include "../includes/libft.h"
 
-# include <elf.h>
-# include <errno.h>
-# include <fcntl.h>
-# include <stdio.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <unistd.h>
+char	*ft_strchr(const char *s, int c)
+{
+	int		i;
 
-# include <libft.h>
-
-#endif
+	if (s)
+	{
+		i = -1;
+		while (s[++i])
+			if (s[i] == (char)c)
+				return ((char *)&s[i]);
+		if (s[i] == (char)c)
+			return ((char *)&s[i]);
+	}
+	return (NULL);
+}

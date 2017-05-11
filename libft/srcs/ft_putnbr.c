@@ -1,27 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   woody.h                                            :+:      :+:    :+:   */
+/*   ft_putnbr.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mguillau <mguillau@student.42.fr>          +#+  +:+       +#+        */
+/*   By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2017/05/10 19:34:11 by mguillau          #+#    #+#             */
-/*   Updated: 2017/05/11 11:47:24 by fventuri         ###   ########.fr       */
+/*   Created: 2014/11/04 17:33:43 by fventuri          #+#    #+#             */
+/*   Updated: 2015/01/02 19:38:19 by fventuri         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef WOODY_H
-# define WOODY_H
+#include "../includes/libft.h"
 
-# include <elf.h>
-# include <errno.h>
-# include <fcntl.h>
-# include <stdio.h>
-# include <sys/mman.h>
-# include <sys/stat.h>
-# include <sys/types.h>
-# include <unistd.h>
-
-# include <libft.h>
-
-#endif
+void		ft_putnbr(int n)
+{
+	if (n < 0)
+	{
+		ft_putchar('-');
+		ft_putnbr(-(n / 10));
+		ft_putnbr(-(n % 10));
+	}
+	else if (n > 9)
+	{
+		ft_putnbr(n / 10);
+		ft_putnbr(n % 10);
+	}
+	else
+		ft_putchar(n + '0');
+}
