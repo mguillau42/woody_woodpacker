@@ -31,14 +31,14 @@ void				print_all(void *ptr)
 	Elf64_Ehdr		*hdr;
 	Elf64_Shdr		*shdr;
 	Elf64_Shdr		*sh_strtable;
+	Elf64_Phdr		*phdr;
 	char			*strtable;
 	int				i;
 
 	hdr = ptr;
 	printf("Header:\n\te_ident: ");
-	for (i = 0; i < EI_NIDENT; ++i) {
+	for (i = 0; i < EI_NIDENT; ++i)
 		printf("%02X ", hdr->e_ident[i]);
-	}
 	printf("\n\te_type: %hu (%hX)", hdr->e_type, hdr->e_type);
 	printf("\n\te_machine: %hu (%hX)", hdr->e_machine, hdr->e_machine);
 	printf("\n\te_version: %u (%X)", hdr->e_version, hdr->e_version);
@@ -53,27 +53,45 @@ void				print_all(void *ptr)
 	printf("\n\te_shnum: %hu (%hX)", hdr->e_shnum, hdr->e_shnum);
 	printf("\n\te_shstrndx: %hu (%hX)\n", hdr->e_shstrndx, hdr->e_shstrndx);
 
-	shdr = (void *)hdr + hdr->e_shoff;
+	// SEGMENTS
+	phdr = (void *)hdr + hdr->e_phoff;
+	printf("Segments:\n");
+	for (i = 0; i < hdr->e_phnum; ++i)
+	{
+		printf("\t[%d]\n", i);
+
+		printf("\t\tp_type: %X\n", phdr->p_type);
+		printf("\t\tp_flags: %X\n", phdr->p_flags);
+		printf("\t\tp_offset: %lX\n", phdr->p_offset);
+		printf("\t\tp_vaddr: %lX\n", phdr->p_vaddr);
+		printf("\t\tp_paddr: %lX\n", phdr->p_paddr);
+		printf("\t\tp_filesz: %lX\n", phdr->p_filesz);
+		printf("\t\tp_memsz: %lX\n", phdr->p_memsz);
+		printf("\t\tp_align: %lX\n", phdr->p_align);
+		phdr = (void *)phdr + sizeof(Elf64_Phdr);
+	}
+
 	// get shstrtable section
+	shdr = (void *)hdr + hdr->e_shoff;
 	sh_strtable = get_section_64(hdr, hdr->e_shstrndx);
 	strtable = (void *)hdr + sh_strtable->sh_offset;
 	printf("Sections:\n");
-	for (int i = 0; i < hdr->e_shnum; i++)
+	for (i = 0; i < hdr->e_shnum; ++i)
 	{
-		printf("\n\n\t%s\n", strtable + shdr->sh_name);
+		printf("\t%s\n", strtable + shdr->sh_name);
 
-		printf("sh_name: %u\n", shdr->sh_name);
-		printf("sh_type: %u\n", shdr->sh_type);
-		printf("sh_flags: %lu\n", shdr->sh_flags);
-		printf("sh_addr: %#lx\n", shdr->sh_addr);
-		printf("sh_offset: %lu\n", shdr->sh_offset);
-		printf("sh_size: %lu\n", shdr->sh_size);
-		printf("sh_link: %u\n", shdr->sh_link);
-		printf("sh_info: %u\n", shdr->sh_info);
-		printf("sh_addralign: %lu\n", shdr->sh_addralign);
-		printf("sh_entsize: %lu\n", shdr->sh_entsize);
+		printf("\t\tsh_name: %u\n", shdr->sh_name);
+		printf("\t\tsh_type: %u\n", shdr->sh_type);
+		printf("\t\tsh_flags: %lu\n", shdr->sh_flags);
+		printf("\t\tsh_addr: %#lx\n", shdr->sh_addr);
+		printf("\t\tsh_offset: %lu\n", shdr->sh_offset);
+		printf("\t\tsh_size: %lu\n", shdr->sh_size);
+		printf("\t\tsh_link: %u\n", shdr->sh_link);
+		printf("\t\tsh_info: %u\n", shdr->sh_info);
+		printf("\t\tsh_addralign: %lu\n", shdr->sh_addralign);
+		printf("\t\tsh_entsize: %lu\n", shdr->sh_entsize);
 
-			shdr = (void *)shdr + sizeof(Elf64_Shdr);
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
 }
 
@@ -186,7 +204,7 @@ int					main(int ac, char **av)
 
 	print_all(m);
 	// Begin code injection
-	pack(m, &buf);
+	//pack(m, &buf);
 
 	// free memory
 	if (munmap(m, buf.st_size))
