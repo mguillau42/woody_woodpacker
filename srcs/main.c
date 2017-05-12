@@ -60,7 +60,7 @@ void				print_all(void *ptr)
 	printf("Sections:\n");
 	for (int i = 0; i < hdr->e_shnum; i++)
 	{
-		printf("\n\n\t%s\n", strtable + shdr->sh_name);
+		printf("\n\n\t%s:\n", strtable + shdr->sh_name);
 
 		printf("sh_name: %u\n", shdr->sh_name);
 		printf("sh_type: %u\n", shdr->sh_type);
@@ -73,7 +73,7 @@ void				print_all(void *ptr)
 		printf("sh_addralign: %lu\n", shdr->sh_addralign);
 		printf("sh_entsize: %lu\n", shdr->sh_entsize);
 
-			shdr = (void *)shdr + sizeof(Elf64_Shdr);
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
 }
 
@@ -91,46 +91,70 @@ Elf64_Shdr				*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type)
 	return (shdr);
 }
 
+void					add_shdr(void *packed, size_t section_size)
+{
+	Elf64_Ehdr			*hdr;
+	Elf64_Shdr			*shdr;
+
+	hdr = packed;
+	hdr->e_shoff += section_size;	// update new offset to section header table
+	hdr->e_shnum++;					// increase number of sections
+
+	// get the bss section header of the packed binary
+	shdr = get_section_bytype_64(hdr, SHT_NOBITS);
+	
+
+
+}
+
 void					pack(void *m, struct stat *buf)
 {
 	Elf64_Ehdr			*hdr;
 	Elf64_Shdr			*shdr;
 	void				*packed;
+	size_t				section_size;
 	size_t				packed_size;
 
-	packed_size = buf->st_size + 4096;
+	section_size = 4096;
+	packed_size = buf->st_size + section_size + sizeof(Elf64_Shdr);
 	if (!(packed = (void *)malloc(packed_size)))
 		return ;
-
 	ft_bzero(packed, packed_size);
+
 	// find bss section
 	hdr = m;
-	/* shdr = (void *)hdr + hdr->e_shoff;*/
-	/* for (int i = 0; i < hdr->e_shnum - 1; i++)*/
-	/* {*/
-	/*     shdr = (void *)shdr + sizeof(Elf64_Shdr);*/
-	/* }*/
-
 	if (!(shdr = get_section_bytype_64(hdr, SHT_NOBITS)))
 	{
 		printf("[!] bss not found\n");
 		return ;
 	}
+	
+	// add space in order to inject sections
 	// copy until end of bss section
-	/* size_t to_copy = shdr->sh_offset + shdr->sh_size;*/
-	ft_memcpy(packed, m, buf->st_size);
+	size_t	len_copy = shdr->sh_offset + shdr->sh_size;
+	ft_memcpy(packed, m, len_copy);
+
+	// add space for new section  by appending at +section_size
+	void	*new_sect = packed + len_copy;
+	// do not copy every section, stop until bss and add space for a new section
+	size_t	len_remain = ((void *)hdr + buf->st_size) - ((void *)shdr + sizeof(Elf64_Shdr));
+	ft_memcpy(new_sect + section_size, m + len_copy, buf->st_size - len_copy - len_remain);
+
+	// then copy remaining sections
+	size_t	new_sect_offset = buf->st_size - len_copy - len_remain;
+	void	*new_sect_header = new_sect + section_size + new_sect_offset;
+	ft_memcpy(new_sect_header + sizeof(Elf64_Shdr), m + len_copy + new_sect_offset, len_remain);
+
+	//
 	// inject code
 	//
-	//
-	// append rest
-	/* ft_memcpy(packed + to_copy + 4096, m + to_copy, buf->st_size - to_copy);*/
+
+	// add section header and update offsets
+	add_shdr(packed, section_size);
+
 	// change header entry point
 	// change file size
-	hdr = packed;
-	hdr->e_ehsize += 4096;
-	hdr->e_entry = 9296;
 	// change nsects
-
 	printf("[+] generating packed file\n");
 	int fd;
 
