@@ -103,10 +103,11 @@ Elf64_Shdr				*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type)
 		/* sh_addralign: 16*/
 		/* sh_entsize: 0*/
 
-void					add_shdr(void *packed, size_t section_size, size_t packed_size)
+Elf64_Shdr				*add_shdr(void *packed, size_t section_size, size_t packed_size)
 {
 	Elf64_Ehdr			*hdr;
 	Elf64_Shdr			*shdr;
+	Elf64_Shdr			*new_shdr;
 
 	hdr = packed;
 	hdr->e_shoff += section_size;	// update new offset to section header table
@@ -124,20 +125,32 @@ void					add_shdr(void *packed, size_t section_size, size_t packed_size)
 	shdr->sh_addr = bss->sh_addr + bss->sh_size;
 	shdr->sh_offset = bss->sh_offset + bss->sh_size;
 	shdr->sh_size = section_size;
-	shdr->sh_addralign = 1;
+	shdr->sh_addralign = 16;
+	new_shdr = shdr;
 
-	// update other sections offsets
+	/* update other sections offsets*/
 	shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	while ((void *)shdr < ((void *)hdr + packed_size))
 	{
 		shdr->sh_offset += section_size;
 		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
 	}
+	return (new_shdr);
 }
 
 void					edit_phdr(void *packed, size_t section_size)
 {
-	//
+	Elf64_Phdr			*phdr;
+	Elf64_Ehdr			*hdr;
+
+	hdr = packed;
+	phdr = (void *)hdr + hdr->e_phoff;
+	(void)section_size;
+	for (int i = 0; i < hdr->e_phnum; i++)
+	{
+		phdr->p_flags = 7;
+		phdr = (void *)phdr + sizeof(Elf64_Phdr);
+	}
 }
 
 void					pack(void *m, struct stat *buf)
@@ -183,10 +196,15 @@ void					pack(void *m, struct stat *buf)
 	//
 
 	// add section header and update offsets
-	add_shdr(packed, section_size, packed_size);
+	Elf64_Shdr *new_shdr = add_shdr(packed, section_size, packed_size);
 	edit_phdr(packed, section_size);
 
 	// change header entry point
+	hdr = packed;
+	// force executable format
+	/* hdr->e_type = 2;*/
+	/* (void)new_shdr;*/
+	hdr->e_entry = new_shdr->sh_addr;
 
 	printf("[+] generating packed file\n");
 	int fd;
