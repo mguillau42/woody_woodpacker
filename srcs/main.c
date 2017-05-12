@@ -60,8 +60,20 @@ void				print_all(void *ptr)
 	printf("Sections:\n");
 	for (int i = 0; i < hdr->e_shnum; i++)
 	{
-		printf("\t%s: offset %lu\n", strtable + shdr->sh_name, shdr->sh_offset);
-		shdr = (void *)shdr + sizeof(Elf64_Shdr);
+		printf("\n\n\t%s\n", strtable + shdr->sh_name);
+
+		printf("sh_name: %u\n", shdr->sh_name);
+		printf("sh_type: %u\n", shdr->sh_type);
+		printf("sh_flags: %lu\n", shdr->sh_flags);
+		printf("sh_addr: %#lx\n", shdr->sh_addr);
+		printf("sh_offset: %lu\n", shdr->sh_offset);
+		printf("sh_size: %lu\n", shdr->sh_size);
+		printf("sh_link: %u\n", shdr->sh_link);
+		printf("sh_info: %u\n", shdr->sh_info);
+		printf("sh_addralign: %lu\n", shdr->sh_addralign);
+		printf("sh_entsize: %lu\n", shdr->sh_entsize);
+
+			shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
 }
 
@@ -93,18 +105,17 @@ void					pack(void *m, struct stat *buf)
 	ft_bzero(packed, packed_size);
 	// find bss section
 	hdr = m;
-	shdr = (void *)hdr + hdr->e_shoff;
-	for (int i = 0; i < hdr->e_shnum - 1; i++)
-	{
-		shdr = (void *)shdr + sizeof(Elf64_Shdr);
-	}
-
-	printf("offset: %lu | size: %lu\n", shdr->sh_offset, shdr->sh_size);
-	/* if (!(shdr = get_section_bytype_64(hdr, SHT_NOBITS)))*/
+	/* shdr = (void *)hdr + hdr->e_shoff;*/
+	/* for (int i = 0; i < hdr->e_shnum - 1; i++)*/
 	/* {*/
-		/* printf("[!] bss not found\n");*/
-		/* return ;*/
+	/*     shdr = (void *)shdr + sizeof(Elf64_Shdr);*/
 	/* }*/
+
+	if (!(shdr = get_section_bytype_64(hdr, SHT_NOBITS)))
+	{
+		printf("[!] bss not found\n");
+		return ;
+	}
 	// copy until end of bss section
 	/* size_t to_copy = shdr->sh_offset + shdr->sh_size;*/
 	ft_memcpy(packed, m, buf->st_size);
@@ -117,6 +128,7 @@ void					pack(void *m, struct stat *buf)
 	// change file size
 	hdr = packed;
 	hdr->e_ehsize += 4096;
+	hdr->e_entry = 9296;
 	// change nsects
 
 	printf("[+] generating packed file\n");
