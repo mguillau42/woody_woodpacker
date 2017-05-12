@@ -2,4 +2,4 @@
 	modifier nsect
 	ajouter section apres bss / tout decaler
 	injecter code
-	
+	modifier p_flags pour ajouter droit d'ecriture au segment contenant la section .text + droit d'exec au segment contenant notre section toute neuve
