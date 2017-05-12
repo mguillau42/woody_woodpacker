@@ -91,7 +91,19 @@ Elf64_Shdr				*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type)
 	return (shdr);
 }
 
-void					add_shdr(void *packed, size_t section_size)
+        /* .text:*/
+		/* sh_name: 157*/
+		/* sh_type: 1*/
+		/* sh_flags: 6*/
+		/* sh_addr: 0x580*/
+		/* sh_offset: 1408*/
+		/* sh_size: 450*/
+		/* sh_link: 0*/
+		/* sh_info: 0*/
+		/* sh_addralign: 16*/
+		/* sh_entsize: 0*/
+
+void					add_shdr(void *packed, size_t section_size, size_t packed_size)
 {
 	Elf64_Ehdr			*hdr;
 	Elf64_Shdr			*shdr;
@@ -99,12 +111,33 @@ void					add_shdr(void *packed, size_t section_size)
 	hdr = packed;
 	hdr->e_shoff += section_size;	// update new offset to section header table
 	hdr->e_shnum++;					// increase number of sections
+	hdr->e_shstrndx++;				// increase string table index since we add a new section
 
 	// get the bss section header of the packed binary
 	shdr = get_section_bytype_64(hdr, SHT_NOBITS);
-	
+	Elf64_Shdr *bss = shdr;
 
+	// fill new section
+	shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	shdr->sh_type = SHT_PROGBITS;
+	shdr->sh_flags = 6;
+	shdr->sh_addr = bss->sh_addr + bss->sh_size;
+	shdr->sh_offset = bss->sh_offset + bss->sh_size;
+	shdr->sh_size = section_size;
+	shdr->sh_addralign = 1;
 
+	// update other sections offsets
+	shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	while ((void *)shdr < ((void *)hdr + packed_size))
+	{
+		shdr->sh_offset += section_size;
+		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
+	}
+}
+
+void					edit_phdr(void *packed, size_t section_size)
+{
+	//
 }
 
 void					pack(void *m, struct stat *buf)
@@ -150,11 +183,11 @@ void					pack(void *m, struct stat *buf)
 	//
 
 	// add section header and update offsets
-	add_shdr(packed, section_size);
+	add_shdr(packed, section_size, packed_size);
+	edit_phdr(packed, section_size);
 
 	// change header entry point
-	// change file size
-	// change nsects
+
 	printf("[+] generating packed file\n");
 	int fd;
 
