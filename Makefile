@@ -15,7 +15,10 @@ NAME = woody_woodpacker
 CC = clang
 
 CFLAGS = -Wall -Wextra -Werror
-C_FILES = main.c
+C_FILES =	main.c \
+			print.c \
+			get.c
+
 SRCS = $(addprefix srcs/,$(C_FILES))
 O_FILES = $(C_FILES:.c=.o)
 OBJ = $(addprefix obj/,$(O_FILES))
