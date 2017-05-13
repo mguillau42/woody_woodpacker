@@ -72,6 +72,19 @@ void					edit_phdr(void *packed, size_t section_size)
 	}
 }
 
+void					inject_code(void *ptr)
+{
+	// code displaying woody
+	// generated using pi.py script ty flo <3
+	char woody[] =	"\x9c\x50\x57\x56\x54\x52\x51\xbf\x01\x00\x00\x00\x48\x8d"
+					"\x35\x18\x00\x00\x00\xba\x0f\x00\x00\x00\x48\x89\xf8\x0f"
+					"\x05\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d"
+					"\xc3\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
+					"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+
+	ft_memcpy(ptr, woody, sizeof(woody) - 1);
+}
+
 void					pack(void *m, struct stat *buf)
 {
 	Elf64_Ehdr			*hdr;
@@ -110,10 +123,8 @@ void					pack(void *m, struct stat *buf)
 	void	*new_sect_header = new_sect + section_size + new_sect_offset;
 	ft_memcpy(new_sect_header + sizeof(Elf64_Shdr), m + len_copy + new_sect_offset, len_remain);
 
-	//
-	// inject code
-	ft_memcpy(new_sect, "AAAA", 4);
-	//
+	// code injection time
+	inject_code(new_sect);
 
 	// add section header and update offsets
 	Elf64_Shdr *new_shdr = add_shdr(packed, section_size, packed_size);

@@ -1,3 +1,5 @@
+import sys
+
 str =  "\x9c\x50\x57\x56\x54\x52\x51"                                       # pushf && pusha (7)
 str += "\xbf\x01\x00\x00\x00"                                               # mov edi, 0x1 (5)
 str += "\x48\x8d\x35\x18\x00\x00\x00"                                       # lea rsi, [rip+0x18] (7)
@@ -12,4 +14,8 @@ str += "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e\x2e\x0a\x00"   # WO
 str += "\x00" * 10                                                          # Used for padding
 # TOTAL: 58 + 10
 # RUN IT WITH PYTHON2 PLS
-print(str)
+# print(str)
+
+for c in str:
+   sys.stdout.write("\\x%02x" % ord(c))
+print
