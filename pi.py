@@ -9,13 +9,14 @@ str += "\x0f\x05"                                                           # sy
 str += "\x59\x5a\x5c\x5e\x5f\x58\x9d"                                       # popa && popf (7)
 str += "\xb8\x00\x00\x00\x00"                                               # mov eax, 0x0 (5)
 str += "\x5d"                                                               # pop rbp (1)
-str += "\xc3"                                                               # ret (1)
+str += "\xc3"                                                               # jmpq to old entry point
 str += "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e\x2e\x0a\x00"   # WOODY STR (16)
 str += "\x00" * 10                                                          # Used for padding
 # TOTAL: 58 + 10
 # RUN IT WITH PYTHON2 PLS
 # print(str)
 
+# print C code
 for c in str:
    sys.stdout.write("\\x%02x" % ord(c))
 print

@@ -72,17 +72,32 @@ void					edit_phdr(void *packed, size_t section_size)
 	}
 }
 
-void					inject_code(void *ptr)
+void					inject_code(void *ptr, Elf64_Ehdr *hdr)
 {
+	int					jump; // offset to jump to old entrypoint
+
 	// code displaying woody
 	// generated using pi.py script ty flo <3
-	char woody[] =	"\x9c\x50\x57\x56\x54\x52\x51\xbf\x01\x00\x00\x00\x48\x8d"
-					"\x35\x18\x00\x00\x00\xba\x0f\x00\x00\x00\x48\x89\xf8\x0f"
-					"\x05\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d"
-					"\xc3\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
-					"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+	char shellcode[] =	"\x9c\x50\x57\x56\x54\x52\x51\xbf\x01\x00\x00\x00\x48\x8d"
+		"\x35\x1c\x00\x00\x00\xba\x0f\x00\x00\x00\x48\x89\xf8\x0f"
+		"\x05\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d"
+		"\xe9"; // jmpq instruction, insert jump value after this
 
-	ft_memcpy(ptr, woody, sizeof(woody) - 1);
+	// then append the code containing woody string
+	char woody_string[] = "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
+		"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+
+	// copy shellcode
+	ft_memcpy(ptr, shellcode, sizeof(shellcode) - 1);
+	ptr += sizeof(shellcode) - 1;
+
+	jump = -2099938; // TODO find real offset
+	printf("[*] old entry point: %#lX | current instr: %#lX | offset: %#X\n", hdr->e_entry, ((Elf64_Addr)ptr + 4), jump);
+	int *int_buffer = (int *)ptr;
+	int_buffer[0] = jump;
+	ptr += sizeof(int);
+
+	ft_memcpy(ptr, woody_string, sizeof(woody_string) - 1);
 }
 
 void					pack(void *m, struct stat *buf)
@@ -106,7 +121,7 @@ void					pack(void *m, struct stat *buf)
 		printf("[!] bss not found\n");
 		return ;
 	}
-	
+
 	// add space in order to inject sections
 	// copy until end of bss section
 	size_t	len_copy = shdr->sh_offset + shdr->sh_size;
@@ -123,19 +138,18 @@ void					pack(void *m, struct stat *buf)
 	void	*new_sect_header = new_sect + section_size + new_sect_offset;
 	ft_memcpy(new_sect_header + sizeof(Elf64_Shdr), m + len_copy + new_sect_offset, len_remain);
 
-	// code injection time
-	inject_code(new_sect);
-
 	// add section header and update offsets
 	Elf64_Shdr *new_shdr = add_shdr(packed, section_size, packed_size);
 	edit_phdr(packed, section_size);
 
 	// change header entry point
 	hdr = packed;
-	// force executable format
-	/* hdr->e_type = 2;*/
-	/* (void)new_shdr;*/
 	hdr->e_entry = new_shdr->sh_addr;
+
+	// code injection time
+	inject_code(new_sect, m);
+
+
 
 	printf("[+] generating packed file\n");
 	int fd;
