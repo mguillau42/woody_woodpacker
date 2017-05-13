@@ -72,9 +72,12 @@ void					edit_phdr(void *packed, size_t section_size)
 	}
 }
 
-void					inject_code(void *ptr, Elf64_Ehdr *hdr)
+void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr)
 {
-	int					jump; // offset to jump to old entrypoint
+	void				*ref;
+	int					jump_offset; // offset to jump to old entrypoint
+
+	ref = ptr; //store the start of the section for later
 
 	// code displaying woody
 	// generated using pi.py script ty flo <3
@@ -83,20 +86,26 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr)
 		"\x05\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d"
 		"\xe9"; // jmpq instruction, insert jump value after this
 
-	// then append the code containing woody string
+	// shell code containing woody string
 	char woody_string[] = "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
 		"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
 
-	// copy shellcode
+	// copy shellcode until jump instruction
 	ft_memcpy(ptr, shellcode, sizeof(shellcode) - 1);
 	ptr += sizeof(shellcode) - 1;
 
-	jump = -2099938; // TODO find real offset
-	printf("[*] old entry point: %#lX | current instr: %#lX | offset: %#X\n", hdr->e_entry, ((Elf64_Addr)ptr + 4), jump);
+	// now the tricky part, we need to jump to the old entrypoint
+	// jump instruction are relative to the current instruction
+	// so first we compute the adress of the current instruction
+	int			offset_inst = ptr - ref; // get the offset of the jmp instruction relatively to the start of the section's content
+	// then add the offset to the virtual addr of the section
+	Elf64_Addr	jump_inst = shdr->sh_addr + offset_inst + 4; // jmp's relative adress seems to take it's value in account so we add + 4
+	jump_offset = hdr->e_entry - jump_inst; // and voila ! substract it to the old_entrypoint
 	int *int_buffer = (int *)ptr;
-	int_buffer[0] = jump;
+	int_buffer[0] = jump_offset; // write it after the jump instruction. done !
 	ptr += sizeof(int);
 
+	// append the rest of the shellcode
 	ft_memcpy(ptr, woody_string, sizeof(woody_string) - 1);
 }
 
@@ -147,7 +156,7 @@ void					pack(void *m, struct stat *buf)
 	hdr->e_entry = new_shdr->sh_addr;
 
 	// code injection time
-	inject_code(new_sect, m);
+	inject_code(new_sect, m, new_shdr);
 
 
 
