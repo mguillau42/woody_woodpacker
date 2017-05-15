@@ -72,7 +72,7 @@ void					edit_phdr(void *packed, size_t section_size)
 	}
 }
 
-void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr)
+void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *entry_shdr)
 {
 	void				*ref;
 	int					jump_offset; // offset to jump to old entrypoint
@@ -81,14 +81,26 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr)
 
 	// code displaying woody
 	// generated using pi.py script ty flo <3
-	char shellcode[] =	"\x9c\x50\x57\x56\x54\x52\x51\xbf\x01\x00\x00\x00\x48\x8d"
-		"\x35\x1c\x00\x00\x00\xba\x0f\x00\x00\x00\x48\x89\xf8\x0f"
-		"\x05\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d"
+	char shellcode[] =	"\x9c\x50\x57\x56\x54\x52\x51"
+		"\xbf\x01\x00\x00\x00"
+		"\x48\x8d\x35\x3e\x00\x00\x00"
+		"\xba\x0f\x00\x00\x00"
+		"\x48\x89\xf8"
+		"\x0f\x05" // syscall (2)
+		"\x48\x8b\x05\x45\x00\x00\x00" // mov    0x33(%rip),%rax
+		"\x48\x8b\x0d\x46\x00\x00\x00" // mov    0x34(%rip),%rcx
+		"\x48\x8b\x15\x47\x00\x00\x00" // mov    0x1d(%rip),%rdx
+		"\x48\x01\xc1" // add    %rax,%rcx
+		"\x30\x10" // xor    %dl,(%rax)
+		"\x48\xff\xc0" // inc rax
+		"\x48\x39\xc8" // cmp rcx, rax
+		"\x75\xf6" // jmp -x0a
+		"\x59\x5a\x5c\x5e\x5f\x58\x9d\xb8\x00\x00\x00\x00\x5d" // popa && popf
 		"\xe9"; // jmpq instruction, insert jump value after this
 
 	// shell code containing woody string
 	char woody_string[] = "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
-		"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+		"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00"; // 0x18
 
 	// copy shellcode until jump instruction
 	ft_memcpy(ptr, shellcode, sizeof(shellcode) - 1);
@@ -107,6 +119,24 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr)
 
 	// append the rest of the shellcode
 	ft_memcpy(ptr, woody_string, sizeof(woody_string) - 1);
+	ptr += sizeof(woody_string) - 1;
+
+	// add addr / size / key
+	Elf64_Addr *buf = (Elf64_Addr *)ptr;
+	buf[0] = hdr->e_entry;
+	buf[1] = (Elf64_Addr)entry_shdr->sh_size;
+	buf[2] = (Elf64_Addr)42;
+}
+
+void					encrypt(Elf64_Ehdr *hdr, Elf64_Shdr *entry_shdr)
+{
+	unsigned char		*entry_content;
+
+	entry_content = (void *)hdr + entry_shdr->sh_offset;
+	for (unsigned long i = 0; i < entry_shdr->sh_size; i++)
+	{
+		entry_content[i] = entry_content[i] ^ 42;
+	}
 }
 
 void					pack(void *m, struct stat *buf)
@@ -114,6 +144,7 @@ void					pack(void *m, struct stat *buf)
 	Elf64_Ehdr			*hdr;
 	Elf64_Shdr			*shdr;
 	void				*packed;
+	Elf64_Addr			old_entry;
 	size_t				section_size;
 	size_t				packed_size;
 
@@ -125,6 +156,7 @@ void					pack(void *m, struct stat *buf)
 
 	// find bss section
 	hdr = m;
+	old_entry = hdr->e_entry;
 	if (!(shdr = get_section_bytype_64(hdr, SHT_NOBITS)))
 	{
 		printf("[!] bss not found\n");
@@ -155,8 +187,17 @@ void					pack(void *m, struct stat *buf)
 	hdr = packed;
 	hdr->e_entry = new_shdr->sh_addr;
 
+	// encrypt
+	Elf64_Shdr		*entry_shdr = NULL;
+	if (!(entry_shdr = get_section_entry_64(hdr, old_entry)))
+	{
+		printf("[!] entry section not found\n");
+		return ;
+	}
+	encrypt(hdr, entry_shdr);
+
 	// code injection time
-	inject_code(new_sect, m, new_shdr);
+	inject_code(new_sect, m, new_shdr, entry_shdr);
 
 
 

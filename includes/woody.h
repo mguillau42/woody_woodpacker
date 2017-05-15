@@ -33,5 +33,6 @@ void				print_all(void *ptr);
 
 Elf64_Shdr			*get_section_byindex_64(Elf64_Ehdr *hdr, Elf64_Half index);
 Elf64_Shdr			*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type);
+Elf64_Shdr			*get_section_entry_64(Elf64_Ehdr *hdr, Elf64_Addr entry);
 
 #endif

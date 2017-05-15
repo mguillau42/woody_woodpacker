@@ -25,5 +25,19 @@ Elf64_Shdr				*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type)
 			return (shdr);
 		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
-	return (shdr);
+	return (NULL);
+}
+
+Elf64_Shdr				*get_section_entry_64(Elf64_Ehdr *hdr, Elf64_Addr entry)
+{
+	Elf64_Shdr			*shdr;
+
+	shdr = (void *)hdr + hdr->e_shoff;
+	for (int i = 0; i < hdr->e_shnum; i++)
+	{
+		if (shdr->sh_addr == entry)
+			return (shdr);
+		shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	}
+	return (NULL);
 }
