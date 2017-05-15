@@ -39,9 +39,11 @@ Elf64_Shdr				*add_shdr(void *packed, size_t section_size, size_t packed_size)
 
 	/* update other sections offsets*/
 	shdr = (void *)shdr + sizeof(Elf64_Shdr);
+	printf("section_size: %zu\n", section_size);
 	while ((void *)shdr < ((void *)hdr + packed_size))
 	{
-		shdr->sh_offset += section_size;
+		if (shdr->sh_offset > (bss->sh_offset + bss->sh_size)) // sometimes some sections are stored in the bss section, skip them !
+			shdr->sh_offset += section_size;
 		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
 	}
 	return (new_shdr);
@@ -89,7 +91,7 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 		"\x0f\x05" // syscall (2)
 		"\x48\x8d\x05"; // append here mov value equal to entry point - rip
 
-	char shellcode_next[] ="\x48\x8b\x0d\x3e\x00\x00\x00" // mov    0x46(%rip),%rcx
+	char shellcode_next[] = "\x48\x8b\x0d\x3e\x00\x00\x00" // mov    0x46(%rip),%rcx
 		"\x48\x8b\x15\x3f\x00\x00\x00" // mov    0x47(%rip),%rdx
 		"\x48\x01\xc1" // add    %rax,%rcx
 		"\x30\x10" // xor    %dl,(%rax)
@@ -106,10 +108,11 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 	// copy shellcode until mov
 	ft_memcpy(ptr, shellcode, sizeof(shellcode) - 1);
 	ptr += sizeof(shellcode) - 1;
-	Elf64_Addr	mov_addr = shdr->sh_addr + (ptr - ref) + 4; // jmp's relative adress seems to take it's value in account so we add + 4
-	int mov_offset = hdr->e_entry - mov_addr; // and voila ! substract it to the old_entrypoint
+
+	Elf64_Addr	mov_addr = shdr->sh_addr + (ptr - ref) + 4;
+	int mov_offset = hdr->e_entry - mov_addr;
 	int *int_buffer = (int *)ptr;
-	int_buffer[0] = mov_offset; // write it after the jump instruction. done !
+	int_buffer[0] = mov_offset;
 	ptr += sizeof(int);
 
 	// copy shellcode until jump instruction
@@ -159,6 +162,7 @@ void					pack(void *m, struct stat *buf)
 
 	section_size = 4096;
 	packed_size = buf->st_size + section_size + sizeof(Elf64_Shdr);
+	printf("[+] filesize: %lu\n", buf->st_size);
 	if (!(packed = (void *)malloc(packed_size)))
 		return ;
 	ft_bzero(packed, packed_size);
@@ -190,6 +194,8 @@ void					pack(void *m, struct stat *buf)
 
 	// add section header and update offsets
 	Elf64_Shdr *new_shdr = add_shdr(packed, section_size, packed_size);
+
+
 	edit_phdr(packed, section_size);
 
 	// change header entry point
@@ -264,9 +270,8 @@ int					main(int ac, char **av)
 		return (1);
 	}
 
-	print_phdr(m);
-	print_shdr(m);
 	// Begin code injection
+	print_all(m);
 	pack(m, &buf);
 
 	// free memory

@@ -14,7 +14,7 @@
 NAME = woody_woodpacker
 CC = clang
 
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -g
 C_FILES =	main.c \
 			print.c \
 			get.c
