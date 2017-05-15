@@ -87,9 +87,10 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 		"\xba\x0f\x00\x00\x00"
 		"\x48\x89\xf8"
 		"\x0f\x05" // syscall (2)
-		"\x48\x8b\x05\x45\x00\x00\x00" // mov    0x33(%rip),%rax
-		"\x48\x8b\x0d\x46\x00\x00\x00" // mov    0x34(%rip),%rcx
-		"\x48\x8b\x15\x47\x00\x00\x00" // mov    0x1d(%rip),%rdx
+		"\x48\x8d\x05"; // append here mov value equal to entry point - rip
+
+	char shellcode_next[] ="\x48\x8b\x0d\x3e\x00\x00\x00" // mov    0x46(%rip),%rcx
+		"\x48\x8b\x15\x3f\x00\x00\x00" // mov    0x47(%rip),%rdx
 		"\x48\x01\xc1" // add    %rax,%rcx
 		"\x30\x10" // xor    %dl,(%rax)
 		"\x48\xff\xc0" // inc rax
@@ -102,9 +103,18 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 	char woody_string[] = "\x2e\x2e\x2e\x2e\x57\x4f\x4f\x44\x59\x2e\x2e\x2e\x2e"
 		"\x2e\x0a\x00\x00\x00\x00\x00\x00\x00\x00\x00"; // 0x18
 
-	// copy shellcode until jump instruction
+	// copy shellcode until mov
 	ft_memcpy(ptr, shellcode, sizeof(shellcode) - 1);
 	ptr += sizeof(shellcode) - 1;
+	Elf64_Addr	mov_addr = shdr->sh_addr + (ptr - ref) + 4; // jmp's relative adress seems to take it's value in account so we add + 4
+	int mov_offset = hdr->e_entry - mov_addr; // and voila ! substract it to the old_entrypoint
+	int *int_buffer = (int *)ptr;
+	int_buffer[0] = mov_offset; // write it after the jump instruction. done !
+	ptr += sizeof(int);
+
+	// copy shellcode until jump instruction
+	ft_memcpy(ptr, shellcode_next, sizeof(shellcode_next) - 1);
+	ptr += sizeof(shellcode_next) - 1;
 
 	// now the tricky part, we need to jump to the old entrypoint
 	// jump instruction are relative to the current instruction
@@ -113,7 +123,7 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 	// then add the offset to the virtual addr of the section
 	Elf64_Addr	jump_inst = shdr->sh_addr + offset_inst + 4; // jmp's relative adress seems to take it's value in account so we add + 4
 	jump_offset = hdr->e_entry - jump_inst; // and voila ! substract it to the old_entrypoint
-	int *int_buffer = (int *)ptr;
+	int_buffer = (int *)ptr;
 	int_buffer[0] = jump_offset; // write it after the jump instruction. done !
 	ptr += sizeof(int);
 
@@ -123,9 +133,8 @@ void					inject_code(void *ptr, Elf64_Ehdr *hdr, Elf64_Shdr *shdr, Elf64_Shdr *e
 
 	// add addr / size / key
 	Elf64_Addr *buf = (Elf64_Addr *)ptr;
-	buf[0] = hdr->e_entry;
-	buf[1] = (Elf64_Addr)entry_shdr->sh_size;
-	buf[2] = (Elf64_Addr)42;
+	buf[0] = entry_shdr->sh_size;
+	buf[1] = 42;
 }
 
 void					encrypt(Elf64_Ehdr *hdr, Elf64_Shdr *entry_shdr)
@@ -186,6 +195,7 @@ void					pack(void *m, struct stat *buf)
 	// change header entry point
 	hdr = packed;
 	hdr->e_entry = new_shdr->sh_addr;
+	/* hdr->e_type = 1;*/
 
 	// encrypt
 	Elf64_Shdr		*entry_shdr = NULL;
@@ -255,6 +265,7 @@ int					main(int ac, char **av)
 	}
 
 	print_phdr(m);
+	print_shdr(m);
 	// Begin code injection
 	pack(m, &buf);
 
