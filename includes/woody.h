@@ -30,6 +30,7 @@ void				print_hdr(void *ptr);
 void				print_shdr(void *ptr);
 void				print_phdr(void *ptr);
 void				print_all(void *ptr);
+void				hexdump(void *ptr, size_t len);
 
 Elf64_Shdr			*get_section_byindex_64(Elf64_Ehdr *hdr, Elf64_Half index);
 Elf64_Shdr			*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type);

@@ -81,3 +81,40 @@ void				print_phdr(void *ptr)
 		phdr = (void *)phdr + sizeof(Elf64_Phdr);
 	}
 }
+
+void				hexdump(void *ptr, size_t len)
+{
+	size_t	k;
+	unsigned char	*c;
+
+	for (size_t i = 0; i < len; i++)
+	{
+		printf("%p: ", ptr);
+		c = ptr;
+		k = i;
+		for (size_t j = 0; j < 16 && i < len; j++)
+		{
+			if (j % 2 == 0)
+				printf(" ");
+			printf("%02x", c[j]);
+			i++;
+		}
+		printf(" ");
+		if ((i - k) < 16)
+		{
+			printf("  ");
+			for (size_t l = 0; l < (16 - (i - k)); l++)
+				printf("  ");
+		}
+		for (size_t j = 0; j < 16 && k < len; j++)
+		{
+			if (ft_isprint(c[j]))
+				printf("%c", c[j]);
+			else
+				printf(".");
+			k++;
+		}
+		printf("\n");
+		ptr += 16;
+	}
+}
