@@ -16,6 +16,7 @@ CC = clang
 
 CFLAGS = -Wall -Wextra -Werror -g
 C_FILES =	main.c \
+			handle_elf64.c \
 			print.c \
 			get.c
 

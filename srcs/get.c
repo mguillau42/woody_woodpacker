@@ -41,3 +41,24 @@ Elf64_Shdr				*get_section_entry_64(Elf64_Ehdr *hdr, Elf64_Addr entry)
 	}
 	return (NULL);
 }
+
+Elf64_Phdr				*get_last_segment_64(Elf64_Ehdr *hdr)
+{
+	Elf64_Phdr		*last;
+	Elf64_Phdr		*phdr;
+
+	last = NULL;
+	phdr = (void *)hdr + hdr->e_phoff;
+	for (int i = 0; i < hdr->e_phnum; i++)
+	{
+		if (phdr->p_type == PT_LOAD)
+		{
+			if (last == NULL)
+				last = phdr;
+			else if (last->p_offset <= phdr->p_offset)
+				last = phdr;
+		}
+		phdr = (void *)phdr + sizeof(Elf64_Phdr);
+	}
+	return (last);
+}

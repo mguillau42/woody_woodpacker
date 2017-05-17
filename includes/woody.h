@@ -35,5 +35,8 @@ void				hexdump(void *ptr, size_t len);
 Elf64_Shdr			*get_section_byindex_64(Elf64_Ehdr *hdr, Elf64_Half index);
 Elf64_Shdr			*get_section_bytype_64(Elf64_Ehdr *hdr, Elf64_Word type);
 Elf64_Shdr			*get_section_entry_64(Elf64_Ehdr *hdr, Elf64_Addr entry);
+Elf64_Phdr			*get_last_segment_64(Elf64_Ehdr *hdr);
+
+void				handle_elf64(void *m, size_t original_size);
 
 #endif

@@ -273,7 +273,7 @@ void					pack(void *m, struct stat *buf)
 int					main(int ac, char **av)
 {
 	int				fd;
-	void			*m;
+	void			*original;
 	unsigned char	*p;
 	struct stat		buf;
 
@@ -295,26 +295,33 @@ int					main(int ac, char **av)
 		return (1);
 	}
 
-	if ((m = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
+	if ((original = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
 			== MAP_FAILED)
 	{
 		perror("[!]");
 		return (1);
 	}
 
-	// check ELF64
-	p = m;
-	if (ft_memcmp(ELFMAG, m, SELFMAG) && p[EI_CLASS] != ELFCLASS64)
+	// check ELF
+	p = original;
+	if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS64)
 	{
-		printf("[!] Provided binary file isn't an ELF64\n");
+		printf("[+] Infecting ELF64 %s\n", av[1]);
+		handle_elf64(original, buf.st_size);
+	}
+	else if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS32)
+	{
+		printf("[!] Provided binary is an ELF32. To implement ?\n");
+		return (1);
+	}
+	else
+	{
+		printf("[!] Provided file is not an ELF binary\n");
 		return (1);
 	}
 
-	// Begin code injection
-	pack(m, &buf);
-
 	// free memory
-	if (munmap(m, buf.st_size))
+	if (munmap(original, buf.st_size))
 	{
 		perror("[!]");
 		return (1);
