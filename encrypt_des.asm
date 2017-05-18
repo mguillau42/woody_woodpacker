@@ -1,95 +1,91 @@
 section .text
-	global permute
-	global get_m
-	global set_m
-	global rol_subkey
-	global subkey_cat
-	global get_block
-	global replace
+	global encrypt
 
-;uint64_t	get_m(uint8_t *msg)
+; uint64_t	get_m(uint8_t *msg)
 get_m:
 	push rbp
 	mov rbp, rsp
-	xor rax, rax				; ret = 0
-	xor rcx, rcx				; i = 0
+	xor rax, rax			; ret = 0
+	xor rcx, rcx			; i = 0
 
 get_m_loop:
 	shl rax, 8				; ret <<= 8
-	add al, [rdi + rcx]			; ret += msg[i]
-	inc rcx						; i++
+	add al, [rdi + rcx]		; ret += msg[i]
+	inc rcx					; i++
 	cmp rcx, 8
-	jne get_m_loop				; for i < 8
+	jl get_m_loop			; for i < 8
 
 get_m_end:
 	leave
 	ret
 
 
-;void		set_m(uint8_t *msg, uint64_t m)
+; void		set_m(uint8_t *msg, uint64_t m)
 set_m:
 	push rbp
 	mov rbp, rsp
-	xor rcx, rcx				; i = 0
+	xor rcx, rcx			; i = 0
+	push rbx
 
 set_m_loop:
-	mov rbx, 56					; 56
-	mov rax, 8					; 8
+	mov rbx, 56				; 56
+	mov rax, 8				; 8
 	push rcx
-	mul rcx						; i * 8
-	sub rbx, rax				; 56 - (8 * i)
+	mul rcx					; i * 8
+	sub rbx, rax			; 56 - (8 * i)
 	pop rcx
-	mov r9, rsi					; tmp store second param
+	mov r9, rsi				; tmp store second param
 	push rcx
-	mov rcx, rbx				; store rbx
-	shr r9, cl					; m >> (56 - (8 * i))
+	mov rcx, rbx			; store rbx
+	shr r9, cl				; m >> (56 - (8 * i))
 	pop rcx
-	mov [rdi + rcx], r9			; msg[i] = m >> (56 - (8 * i));
-	inc rcx						; i++
+	mov [rdi + rcx], r9		; msg[i] = m >> (56 - (8 * i));
+	inc rcx					; i++
 	cmp rcx, 8
-	jne set_m_loop				; for i < 8
+	jl set_m_loop			; for i < 8
 
 set_m_end:
+	pop rbx
 	leave
 	ret
 
 ; uint64_t		permute(const uint64_t nbr, const uint32_t *table, size_t t_len, size_t n_len);
 permute:
-	push rbp ; Beginning of every function
-	mov rbp, rsp ; Beginning of every function
-	xor rax, rax ; Set rax to 0
-	xor r9, r9 ; Set loop counter to 0
+	push rbp
+	mov rbp, rsp
+	xor rax, rax			; ret = 0
+	xor r9, r9				; i = 0
 
 permute_loop:
-	shl rax, 1 ; left shift rax by 1
-	push rdi ; save rdi (nbr) for further uses
-	push rcx
+	shl rax, 1				; ret <<= 1
+	push rdi				; save nbr
+	push rcx				; save n_len
 	mov r8, rcx
-	mov cl, byte [rsi + r9] ; set r8 to table[i]
-	add cx, 63 ; add 63 to r8
-	sub rcx, r8 ; sub n_len to r8
-	shl rdi, cl ; left shift rdi by r8 (overflow is wanted)
-	shr rdi, 63 ; right shift rdi by 63 (overflow is also wanted). We extracted the table[i]-th bit with that
-	add rax, rdi ; append the bit to rax
-	pop rcx
-	pop rdi ; Get back default rdi
-	inc r9 ; increment loop counter
-	cmp r9, rdx ; check if we reached the end of the loop
-	jl permute_loop ; do this while r9 < rdx (we know for sure that rdx > 0)
+	mov cl, byte [rsi + r9]	; set r8 to table[i]
+	add cx, 63				; add 63 to cx
+	sub rcx, r8				; sub n_len to rcx
+	shl rdi, cl				; The only way to shl with a "variable"
+	shr rdi, 63				; finally right shift rdi by 63 to extract the table[i]-th bit
+	add rax, rdi			; append the bit to rax
+	pop rcx					; get back n_len
+	pop rdi					; get back nbr
+	inc r9					; increment loop counter
+	cmp r9, rdx				; check if we reached the end of the loop
+	jl permute_loop			; do this while r9 < rdx (we know for sure that rdx > 0)
 
 permute_end:
-	leave ; End of every function
-	ret ; End of every function
+	leave
+	ret
 
 ; uint64_t	subkeycat(uint64_t c, uint64_t d)
-subkey_cat:
+subkeycat: ; TODO: change rbx to r8 (so we might not have to push rbx and pop it later )
 	push rbp
 	mov rbp, rsp
 	push rbx				; woot
 	mov rax, rdi			; ret = c
 	shl rax, 28				; ret <<= 28
 	mov rbx, rsi
-	add rax, qword rbx
+	add rax, qword rbx		; ??
 	pop rbx					; woot
 	leave
 	ret
@@ -98,20 +94,29 @@ subkey_cat:
 rol_subkey:
 	push rbp
 	mov rbp, rsp
-	push rbx				; if i don't do this, rsi is fucked up next call to subkey_cat
-	mov rbx, sub_rot		; load sub_rot
-	mov rcx, [rbx + rsi]	; sub_rot[state]
-	mov rbx, rdi
-	rol rbx, cl				; flo why isn't this enough ? Because we manipulate 56bits values, not 64 :/
-	mov eax, ebx
-	shr rdi, 27				; i don't understand why this is necessary but ok
-	add eax, edi
-	and eax, 0xfffffff
-	pop rbx
+	mov r8, sub_rot
+	; mov rsi, [rsi]
+	mov rcx, [r8 + rsi]	; i = sub_rot[state]
+
+rol_subkey_loop:
+	push rdi				; save nbr
+	mov rax, rdi			; nbr = nbr
+	shl rax, 36				; nbr = nbr << 36
+	shr rax, 35				; nbr = (nbr << 36) >> 35
+	pop rdi					; get back saved rdi
+	shr rdi, 27				; nbr >> 27
+	add rax, rdi			; nbr = ((nbr << 36) >> 35) + (nbr >> 27)
+	and rax, 0xfffffff		; nbr = ((nbr << 36) >> 35) + (nbr >> 27) & 0xfffffff
+	mov rdi, rax			; rdi evolved
+	dec rcx					; --i
+	cmp cl, 0				; if i > 0
+	jne rol_subkey_loop		; --> for loop
+
+rol_subkey_end:
 	leave
 	ret
 
-;uint8_t		get_block(uint64_t blocks, uint32_t i)
+; uint8_t		get_block(uint64_t blocks, uint32_t i)
 get_block:
 	push rbp
 	mov rbp, rsp
@@ -121,13 +126,13 @@ get_block:
 	mul rcx					; i * 6
 	add rax, 16				; 16 + (i * 6)
 	mov rcx, rax
-	shl rdi, cl			; blocks << (16 + (i * 6))
-	shr rdi, 58
+	shl rdi, cl				; blocks << (16 + (i * 6))
+	shr rdi, 58				; (blocks << (16 + (i * 6))) >> 58
 	mov rax, rdi
 	leave
 	ret
 
-;uint8_t		replace(const uint8_t block, const uint32_t table[4][16])
+; uint8_t		replace(const uint8_t block, const uint32_t table[4][16])
 replace:
 	push rbp
 	mov rbp, rsp
@@ -152,24 +157,190 @@ replace:
 	leave
 	ret
 
-ft:
+; uint64_t		ft(uint64_t r, uint64_t k);
+ft: ; Not tested yet, I should have done that first
 	push rbp
 	mov rbp, rsp
-	; CODE HERE
+	push rsi				; Save k
+	mov rsi, expand			; prepare permute() call
+	mov rdx, 48				; ^
+	mov rcx, 32				; ^
+	call permute
+	pop rsi					; get back k
+	mov rdi, rax
+	xor rdx, rsi			; blocks = exp_r (result of permute call) XOR k
+	xor rcx, rcx			; i = 0
+	xor rax, rax			; ret = 0
+
+ft_loop:
+	shl rax, 4				; ret <<= 4
+	push rax				; save ret
+	push rdi				; save blocks
+	mov rsi, rcx			; prepare get_block() call
+	call get_block
+	mov rdi, rax			; store result of get_block as 1st param for replace
+	mov rsi, s_box			; 2nd param is s_box
+	push rcx				; save counter
+	shl rcx, 6				; multiply rcx by 16 * 4
+	add rsi, rcx			; make rsi point to s_box + 16 * 4 * i (aka, s_box[i])
+	call replace
+	pop rcx					; get back counter
+	pop rdi					; get back blocks
+	mov r8, rax				; save result of replace() in r8
+	pop rax					; get back ret
+	add rax, r8				; ret += replace(...)
+	inc rcx					; ++i
+	cmp rcx, 8
+	jl ft_loop				; for loop
+
+ft_end:
 	leave
 	ret
 
+; void		generate_keys(uint64_t k[16], uint64_t key)
 generate_keys:
 	push rbp
 	mov rbp, rsp
-	; CODE HERE
+	xor rcx, rcx			; i = 0
+	mov r8, rsi				; c = key
+	shr r8, 28				; c = key >> 28
+	mov r9, rsi				; d = key
+	shl r9, 36				; d = key << 36
+	shr r9, 36				; d = (key << 36) >> 36
+	push r9
+	push r8
+
+generate_keys_loop:
+	push rdi				; save k
+	push rcx				; save i
+	mov rdi, [rsp + 16]		; prepare rol_subkey() call
+	mov rsi, rcx			; ^
+	call rol_subkey			; rol_subkey(c, i)
+	mov [rsp + 16], rax		; edit c in stack
+	mov rdi, [rsp + 24]		; get d in stack
+	mov rsi, [rsp]			; get i in stack
+	call rol_subkey			; rol_subkey(d, i)
+	mov rdi, [rsp + 16]		; get c in stack
+	mov rsi, rax			; prepare subkeycat() call
+	mov [rsp + 24], rax		; set d in stack
+	call subkeycat			; subkeycat(c, d)
+	mov rdi, rax			; prepare permute call
+	mov rsi, pc2			; ^
+	mov rdx, 48				; ^
+	mov rcx, 56				; ^
+	call permute			; permute(...)
+	pop rcx					; get back i
+	pop rdi					; get back k
+	mov r8, rcx				; use r8 as reg to compute offset
+	shl r8, 3				; r8 *= 8
+	mov [rdi + r8], rax		; k[i] = permute(...)
+	inc rcx
+	cmp rcx, 16
+	jl generate_keys_loop
+
+generate_keys_end:
+	pop r9
+	pop r8
 	leave
 	ret
 
-encrypt: ; rdi = *msg / rsi = key / rdx = len
+; uint8_t		*encrypt(uint8_t *msg, uint64_t key, size_t len)
+encrypt: ; TOTALLY NOT WORKING --> SEGV on ret in main, gotta investigate.. Detective fventuri is on the case !
 	push rbp
 	mov rbp, rsp
-	; CODE HERE
+	push rdi				; save *msg
+	mov rdi, rsp			; save k position
+	sub rsp, 128			; reserve place for k (sizeof(uint64_t) * 16 = 8 * 16 = 128)
+	push rdx				; save len for last loop
+	shr rdx, 3				; max_len = max_len / 8 (aka max_len >> 3)
+	shl rdx, 3				; max_len = max_len * 8 (aka max_len << 3)
+	push rsi				; save key
+	push rdx				; save max_len for the loop
+	mov rdi, rsi			; prepare permute() call
+	mov rsi, pc1			; ^
+	mov rdx, 56				; ^
+	mov rcx, 64				; ^
+	call permute			; permute(...)
+	mov rdi, [rsp + 144]	; prepare generate_keys call
+	mov rsi, rax			; ^
+	call generate_keys		; generate_keys(...)
+	xor rcx, rcx			; i = 0
+
+encrypt_loop1_1:
+	mov rdi, [rsp + 152]	; prepare get_m() call --> get *msg
+	add rdi, rcx			; &msg[i] (aka msg + i)
+	push rcx				; save rcx to use it again after the 2nd loop
+	call get_m				; get_m
+	mov rdi, rax			; prepare permute() call (use result of get_m as 1st arg)
+	mov rsi, ip				; ^
+	mov rdx, 64				; ^
+	mov rcx, rdx			; ^
+	call permute			; permute(...) (let's call the result 'm')
+	mov r8, rax				; l = m
+	shr r8, 32				; l = m >> 32
+	mov r9, rax				; r = m
+	shl r9, 32				; r = m << 32
+	shr r9, 32				; r = (m << 32) >> 32
+	xor rcx, rcx			; j = 0
+	push r8					; save l
+	push r9					; save r
+
+encrypt_loop2:
+	mov r8, [rsp + 8]		; `tmp = l;`
+	mov r9, [rsp]
+	mov [rsp + 8], r9	; `l = r;`
+	push r8
+	mov rdi, [rsp + 8]		; prepare ft() call
+	mov r9, rcx
+	shl r9, 3
+	mov r8, 168
+	sub r8, r9
+	mov rsi, [rsp + r8] ; 168 - rcx*8]	; k[j]
+	push rcx				; save j
+	call ft
+	pop rcx					; get back j
+	pop r8					; get tmp
+	xor r8, rax				; tmp ^ ft()
+	mov [rsp], r8			; r = tmp ^ ft()
+	inc rcx
+	cmp rcx, 16
+	jl encrypt_loop2
+
+encrypt_loop1_2: ; NEED max_len loaded in rdx
+	pop r9					; r
+	pop r8					; l
+	mov rdi, r9
+	shl rdi, 32				; r << 32
+	add rdi, r8				; (r << 32) + l --> prepare permute() call
+	mov rsi, fp				; ^
+	mov rdx, 64				; ^
+	mov rcx, rdx			; ^
+	call permute
+	mov rcx, [rsp]			; i
+	mov rdi, [rsp + 160]	; *msg
+	add rdi, rcx			; &msg[i] (aka msg + i)
+	mov rsi, rax			; 2nd arg or set_m is the permute return value
+	call set_m
+	pop rcx					; get back i
+	mov rdx, [rsp]			; set rdx to max_len
+	inc rcx					; ++i
+	cmp rcx, rdx			; i < max_len
+	jl encrypt_loop1_1		; for loop
+
+encrypt_loop3:
+	mov rax, [rsp + 144]	; *msg
+	add rax, rcx			; msg + i
+	mov r8, [rax]
+	xor r8, [rsp + 8]		; msg[i] ^= key
+	mov [rax], r8
+	mov rdx, [rsp + 16]		; len
+	inc rcx					; ++i
+	cmp rcx, rdx			; i < len
+	jl encrypt_loop3		; for loop
+
+encrypt_end:
+	add rsp, 152
+	pop rax
 	leave
 	ret
 
