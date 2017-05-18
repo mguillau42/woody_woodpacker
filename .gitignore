@@ -4,7 +4,7 @@
 a.out
 woody_woodpacker
 woody
-.gdb_history                                                                                                                                           │
-peda-session-woody.txt
+.gdb_history
+peda-session-*.txt
 *.swo
 *.swn

@@ -1,11 +1,174 @@
 section .text
-global encrypt
-global get_m
-global set_m
-global rol_subkey
-global subkey_cat
-global get_block
-global replace
+	global permute
+
+;uint64_t	get_m(uint8_t *msg)
+get_m:
+	push rbp
+	mov rbp, rsp
+	xor rax, rax				; ret = 0
+	xor rcx, rcx				; i = 0
+
+get_m_loop:
+	shl rax, 8				; ret <<= 8
+	add al, [rdi + rcx]			; ret += msg[i]
+	inc rcx						; i++
+	cmp rcx, 8
+	jne get_m_loop				; for i < 8
+
+get_m_end:
+	leave
+	ret
+
+
+;void		set_m(uint8_t *msg, uint64_t m)
+set_m:
+	push rbp
+	mov rbp, rsp
+	xor rcx, rcx				; i = 0
+
+set_m_loop:
+	mov rbx, 56					; 56
+	mov rax, 8					; 8
+	push rcx
+	mul rcx						; i * 8
+	sub rbx, rax				; 56 - (8 * i)
+	pop rcx
+	mov r9, rsi					; tmp store second param
+	push rcx
+	mov rcx, rbx				; store rbx
+	shr r9, cl					; m >> (56 - (8 * i))
+	pop rcx
+	mov [rdi + rcx], r9			; msg[i] = m >> (56 - (8 * i));
+	inc rcx						; i++
+	cmp rcx, 8
+	jne set_m_loop				; for i < 8
+
+set_m_end:
+	leave
+	ret
+
+; uint64_t		permute(const uint64_t nbr, const uint32_t *table, size_t t_len, size_t n_len);
+permute:
+	push rbp ; Beginning of every function
+	mov rbp, rsp ; Beginning of every function
+	xor rax, rax ; Set rax to 0
+	xor r9, r9 ; Set loop counter to 0
+
+permute_loop:
+	shl rax, 1 ; left shift rax by 1
+	push rdi ; save rdi (nbr) for further uses
+	push rcx
+	mov r8, rcx
+	mov cl, byte [rsi + r9] ; set r8 to table[i]
+	add cx, 63 ; add 63 to r8
+	sub rcx, r8 ; sub n_len to r8
+	shl rdi, cl ; left shift rdi by r8 (overflow is wanted)
+	shr rdi, 63 ; right shift rdi by 63 (overflow is also wanted). We extracted the table[i]-th bit with that
+	add rax, rdi ; append the bit to rax
+	pop rcx
+	pop rdi ; Get back default rdi
+	inc r9 ; increment loop counter
+	cmp r9, rdx ; check if we reached the end of the loop
+	jl permute_loop ; do this while r9 < rdx (we know for sure that rdx > 0)
+
+permute_end:
+	leave ; End of every function
+	ret ; End of every function
+
+; uint64_t	subkeycat(uint64_t c, uint64_t d)
+subkey_cat:
+	push rbp
+	mov rbp, rsp
+	push rbx				; woot
+	mov rax, rdi			; ret = c
+	shl rax, 28				; ret <<= 28
+	mov rbx, rsi
+	add rax, qword rbx
+	pop rbx					; woot
+	leave
+	ret
+
+; uint32_t	rol_subkey(uint64_t nbr, uint32_t state)
+rol_subkey:
+	push rbp
+	mov rbp, rsp
+	push rbx				; if i don't do this, rsi is fucked up next call to subkey_cat
+	mov rbx, sub_rot		; load sub_rot
+	mov rcx, [rbx + rsi]	; sub_rot[state]
+	mov rbx, rdi
+	rol rbx, cl				; flo why isn't this enough ? Because we manipulate 56bits values, not 64 :/
+	mov eax, ebx
+	shr rdi, 27				; i don't understand why this is necessary but ok
+	add eax, edi
+	and eax, 0xfffffff
+	pop rbx
+	leave
+	ret
+
+;uint8_t		get_block(uint64_t blocks, uint32_t i)
+get_block:
+	push rbp
+	mov rbp, rsp
+	xor rax, rax
+	mov rax, rsi
+	mov rcx, 6
+	mul rcx					; i * 6
+	add rax, 16				; 16 + (i * 6)
+	mov rcx, rax
+	shl rdi, cl			; blocks << (16 + (i * 6))
+	shr rdi, 58
+	mov rax, rdi
+	leave
+	ret
+
+;uint8_t		replace(const uint8_t block, const uint32_t table[4][16])
+replace: ; NOT WORKING
+	push rbp
+	mov rbp, rsp
+	xor rcx, rcx			; i = 0
+	xor rdx, rdx			; j = 0
+	; compute i
+	mov r8, rdi				; block
+	shr r8, 5				; block >> 5
+	shl r8, 1				; (block >> 5) << 1
+	mov r9, rdi				; block
+	and r9, 1				; block & 1
+	add r8, r9				; addition
+	mov rcx, r8				; i computed
+	; compute j
+	mov rdx, rdi			; j = block
+	shl rdx, 3				; block << 3
+	shr rdx, 4				; j >>= 4
+	; compute index
+	mov rax, rdx
+	mov rdx, 16
+	mul rdx					; j * 16
+	add rax, rcx			; += i
+	mov rdx, rax
+	mov eax, [rsi + rdx * 4]
+	leave
+	ret
+
+ft:
+	push rbp
+	mov rbp, rsp
+	; CODE HERE
+	leave
+	ret
+
+generate_keys:
+	push rbp
+	mov rbp, rsp
+	; CODE HERE
+	leave
+	ret
+
+encrypt: ; rdi = *msg / rsi = key / rdx = len
+	push rbp
+	mov rbp, rsp
+	; CODE HERE
+	leave
+	ret
 
 pc1:		db 57, 49, 41, 33, 25, 17,  9
 			db  1, 58, 50, 42, 34, 26, 18
@@ -90,154 +253,3 @@ s_box:		db 14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7
 			db  1, 15, 13,  8, 10,  3,  7,  4, 12,  5,  6, 11,  0, 14,  9,  2
 			db  7, 11,  4,  1,  9, 12, 14,  2,  0,  6, 10, 13, 15,  3,  5,  8
 			db  2,  1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  0,  3,  5,  6, 11
-
-
-;uint64_t	get_m(uint8_t *msg)
-get_m:
-	push rbp
-	mov rbp, rsp
-	xor rax, rax				; ret = 0
-	xor rcx, rcx				; i = 0
-
-get_m_loop:
-	shl rax, 8				; ret <<= 8
-	add al, [rdi + rcx]			; ret += mgs[i]
-	inc rcx						; i++
-	cmp rcx, 8
-	jne get_m_loop				; for i < 8
-
-get_m_end:
-	leave
-	ret
-
-
-;void		set_m(uint8_t *msg, uint64_t m)
-set_m:
-	push rbp
-	mov rbp, rsp
-	xor rcx, rcx				; i = 0
-
-set_m_loop:
-	mov rbx, 56					; 56
-	mov rax, 8					; 8
-	push rcx
-	mul rcx						; i * 8
-	sub rbx, rax				; 56 - (8 * i)
-	pop rcx
-	mov r9, rsi					; tmp store second param
-	push rcx
-	mov rcx, rbx				; store rbx
-	shr r9, cl					; m >> (56 - (8 * i))
-	pop rcx
-	mov [rdi + rcx], r9			; msg[i] = m >> (56 - (8 * i));
-	inc rcx						; i++
-	cmp rcx, 8
-	jne set_m_loop				; for i < 8
-
-set_m_end:
-	leave
-	ret
-
-;
-permute:
-	push rbp
-	mov rbp, rsp
-	; CODE HERE
-	leave
-	ret
-
-
-; uint64_t	subkeycat(uint64_t c, uint64_t d)
-subkey_cat:
-	push rbp
-	mov rbp, rsp
-	push rbx				; woot
-	mov rax, rdi			; ret = c
-	shl rax, 28				; ret <<= 28
-	mov rbx, rsi
-	add rax, qword rbx
-	pop rbx					; woot
-	leave
-	ret
-
-; uint32_t	rol_subkey(uint64_t nbr, uint32_t state)
-rol_subkey:
-	push rbp
-	mov rbp, rsp
-	push rbx				; if i don't do this, rsi is fucked up next call to subkey_cat
-	mov rbx, sub_rot		; load sub_rot
-	mov rcx, [rbx + rsi]	; sub_rot[state]
-	mov rbx, rdi
-	rol rbx, cl				; flo why isn't this enough  ?
-	mov eax, ebx
-	shr rdi, 27				; i don't understand why this is necessary but ok
-	add eax, edi
-	and eax, 0xfffffff
-	pop rbx
-	leave
-	ret
-
-;uint8_t		get_block(uint64_t blocks, uint32_t i)
-get_block:
-	push rbp
-	mov rbp, rsp
-	xor rax, rax
-	mov rax, rsi
-	mov rcx, 6
-	mul rcx					; i * 6
-	add rax, 16				; 16 + (i * 6)
-	mov rcx, rax
-	shl rdi, cl			; blocks << (16 + (i * 6))
-	shr rdi, 58
-	mov rax, rdi
-	leave
-	ret
-
-;uint8_t		replace(const uint8_t block, const uint32_t table[4][16])
-replace: ; NOT WORKING
-	push rbp
-	mov rbp, rsp
-	xor rcx, rcx			; i = 0
-	xor rdx, rdx			; j = 0
-	; compute i
-	mov r8, rdi				; block
-	shr r8, 5				; block >> 5
-	shl r8, 1				; (block >> 5) << 1
-	mov r9, rdi				; block
-	and r9, 1				; block & 1
-	add r8, r9				; addition
-	mov rcx, r8				; i computed
-	; compute j
-	mov rdx, rdi			; j = block
-	shl rdx, 3				; block << 3
-	shr rdx, 4				; j >>= 4
-	; compute index
-	mov rax, rdx
-	mov rdx, 16
-	mul rdx					; j * 16
-	add rax, rcx			; += i
-	mov rdx, rax
-	mov eax, [rsi + rdx * 4]
-	leave
-	ret
-
-ft:
-	push rbp
-	mov rbp, rsp
-	; CODE HERE
-	leave
-	ret
-
-generate_keys:
-	push rbp
-	mov rbp, rsp
-	; CODE HERE
-	leave
-	ret
-
-encrypt: ; rdi = *msg / rsi = key / rdx = len
-	push rbp
-	mov rbp, rsp
-	; CODE HERE
-	leave
-	ret
