@@ -15,7 +15,10 @@ BIN_PATH = os.path.join(PROJECT_PATH, 'woody_woodpacker')
 def execute(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
-    output = output.decode().rstrip()
+    try:
+        output = output.decode().rstrip()
+    except:
+        output = ''
     error = error.decode().rstrip()
     rc = proc.returncode
     return (output, rc, error)

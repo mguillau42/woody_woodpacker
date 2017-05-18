@@ -12,13 +12,14 @@ static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, siz
 
 	hdr = original;
 	printf("[+] Section header table offset: %lu (%#lx)\n", hdr->e_shoff, hdr->e_shoff);
-	if (hdr->e_shoff && hdr->e_shoff >= last->p_offset && hdr->e_shoff < (last->p_offset + last->p_filesz))	// handles stripped binary whose shstroff starts inside the data segment
+	if (hdr->e_shoff && hdr->e_shoff >= last->p_offset && hdr->e_shoff < (last->p_offset + last->p_memsz))	// handles stripped binary whose shstroff starts inside the data segment
 	{
 		printf("[!] Section header table located in last segment\n");
-		len = last->p_offset + last->p_filesz;	// copy until the start of the shdr table
+	len = last->p_offset + last->p_filesz;	// copy until end of DATA segment
+		len = hdr->e_shoff;
 	}
 	else
-		len = last->p_offset + last->p_memsz;
+		len = hdr->e_shoff;
 	ft_memcpy(packed, original, len);
 	packed += len;
 	original += len;
@@ -67,7 +68,7 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 	// fix sections offsets after injection
 	for (int i = 0; i < packed->e_shnum; i++)
 	{
-		if (shdr->sh_offset > (last->p_offset + last->p_filesz))
+		if ((long)shdr->sh_offset > ((void *)injected_section - (void *)packed))
 			shdr->sh_offset += code_size;
 		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
 	}
@@ -75,8 +76,8 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 	// fill new section
 	shdr->sh_type = SHT_PROGBITS;
 	shdr->sh_flags = 6;
-	shdr->sh_addr = last->p_align + ((void *)injected_section - (void *)packed);
 	shdr->sh_offset = ((void *)injected_section - (void *)packed);
+	shdr->sh_addr = (last->p_vaddr - last->p_offset) + shdr->sh_offset;
 	shdr->sh_size = code_size;
 	shdr->sh_addralign = 16;
 
