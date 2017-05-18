@@ -1,5 +1,11 @@
 section .text
 	global permute
+	global get_m
+	global set_m
+	global rol_subkey
+	global subkey_cat
+	global get_block
+	global replace
 
 ;uint64_t	get_m(uint8_t *msg)
 get_m:
@@ -122,30 +128,27 @@ get_block:
 	ret
 
 ;uint8_t		replace(const uint8_t block, const uint32_t table[4][16])
-replace: ; NOT WORKING
+replace:
 	push rbp
 	mov rbp, rsp
 	xor rcx, rcx			; i = 0
 	xor rdx, rdx			; j = 0
 	; compute i
 	mov r8, rdi				; block
-	shr r8, 5				; block >> 5
-	shl r8, 1				; (block >> 5) << 1
+	shr r8d, 5				; block >> 5
+	shl r8d, 1				; (block >> 5) << 1
 	mov r9, rdi				; block
-	and r9, 1				; block & 1
+	and r9d, 1				; block & 1
 	add r8, r9				; addition
 	mov rcx, r8				; i computed
 	; compute j
 	mov rdx, rdi			; j = block
-	shl rdx, 3				; block << 3
-	shr rdx, 4				; j >>= 4
+	shl dl, 3				; block << 3
+	shr dl, 4				; j >>= 4
 	; compute index
-	mov rax, rdx
-	mov rdx, 16
-	mul rdx					; j * 16
-	add rax, rcx			; += i
-	mov rdx, rax
-	mov eax, [rsi + rdx * 4]
+	shl rcx, 4
+	add rdx, rcx			; += i
+	mov al, byte [rsi + rdx]
 	leave
 	ret
 

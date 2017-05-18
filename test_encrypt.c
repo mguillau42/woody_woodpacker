@@ -10,9 +10,9 @@ uint64_t	get_m(uint8_t *msg);
 void		set_m(uint8_t *msg, uint64_t m);
 uint32_t	rol_subkey(uint64_t nbr, uint32_t state);
 uint8_t		get_block(uint64_t blocks, uint32_t i);
-uint8_t		replace(const uint8_t block, const uint32_t table[4][16]);
+uint8_t		replace(const uint8_t block, const uint8_t table[4][16]);
 
-const uint32_t s_box[8][4][16] = {
+const uint8_t s_box[8][4][16] = {
 	{
 		{14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7},
 		{ 0, 15,  7,  4, 14,  2, 13,  1, 10,  6, 12, 11,  9,  5,  3,  8},
@@ -70,7 +70,7 @@ const uint32_t s_box[8][4][16] = {
 	},
 };
 
-uint8_t		replace_c(const uint8_t block, const uint32_t table[4][16])
+uint8_t		replace_c(const uint8_t block, const uint8_t table[4][16])
 {
 	uint8_t	i = 0;
 	uint8_t	j = 0;
@@ -78,7 +78,7 @@ uint8_t		replace_c(const uint8_t block, const uint32_t table[4][16])
 	i = ((block >> 5) << 1) + (block & 1);
 	j = (block << 3);
 	j >>= 4;
-	printf("i: %d | j: %d\n", i ,j);
+	printf("PARAM: %hhX | i: %d | j: %d\n", block, i ,j);
 	return (table[i][j]);
 }
 
