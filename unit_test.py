@@ -32,10 +32,14 @@ def tests_woody(tests_array, args):
 
         # execute nm and ft_nm
         out , rc , err = execute("{} {}".format(BIN_PATH, t))
+        woody_out , woody_rc , woody_err = execute("{}".format("./woody"))
 
         # compare their return value and output
         if rc == -signal.SIGSEGV:
-            result = "\033[91mSEGMENTATION FAULT\033[0m"
+            result = "\033[91mwoody_woodpacker: SEGMENTATION FAULT\033[0m"
+            errors += 1
+        elif woody_rc == -signal.SIGSEGV or "Segmentation fault" in woody_err:
+            result = "\033[91mwoody: SEGMENTATION FAULT\033[0m"
             errors += 1
         elif rc != 0:
             result = "\033[91mERROR\033[0m: woody_woodpacker returned {}".format(rc)
@@ -68,7 +72,7 @@ def tests_main(args):
                     f = os.path.join(root, file)
                     out, rc, _ = execute("file {}".format(f))
 
-                    if args.noignore or not rc and "ELF 64-bit" in out and "not stripped" in out:
+                    if args.noignore or not rc and "ELF 64-bit" in out:
                         files_to_test.append(f)
 
                 if not args.recursive:

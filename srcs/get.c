@@ -62,3 +62,15 @@ Elf64_Phdr				*get_last_segment_64(Elf64_Ehdr *hdr)
 	}
 	return (last);
 }
+
+Elf64_Shdr				*get_shdr_table_64(Elf64_Ehdr *hdr, size_t original_size)
+{
+	void				*tmp;
+
+	tmp = (void *)hdr + hdr->e_shoff;
+	if (!hdr->e_shoff)
+		return (NULL);
+	if (tmp < (void *)hdr || (tmp + (hdr->e_shentsize * hdr->e_shnum)) > (void *)hdr + original_size) // check oob
+		return (NULL);
+	return ((void *)hdr + hdr->e_shoff);
+}
