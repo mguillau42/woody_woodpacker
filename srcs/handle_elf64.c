@@ -12,20 +12,19 @@ static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, siz
 
 	hdr = original;
 	printf("[+] Section header table offset: %lu (%#lx)\n", hdr->e_shoff, hdr->e_shoff);
-	if (hdr->e_shoff && hdr->e_shoff >= last->p_offset && hdr->e_shoff < (last->p_offset + last->p_memsz))	// handles stripped binary whose shstroff starts inside the data segment
-	{
-		printf("[!] Section header table located in last segment\n");
+
 	len = last->p_offset + last->p_filesz;	// copy until end of DATA segment
-		len = hdr->e_shoff;
-	}
-	else
-		len = hdr->e_shoff;
 	ft_memcpy(packed, original, len);
 	packed += len;
 	original += len;
+
+	// get bss section len
+	size_t len_bss = last->p_memsz - last->p_filesz;	// copy until end of DATA segment
+	packed += len_bss;
+	printf("[+] Inserting %lu free bytes after bss\n", len_bss);
 	printf("[+] Inserting %lu free bytes at file offset %lu (%#zx)\n", code_size, len, len);
 	// append rest at + code size to reserve space for our new section
-	ft_memcpy(packed + code_size, original, original_size - len);
+	ft_memcpy(packed + code_size , original, original_size - len);
 	return (packed);
 }
 
@@ -54,8 +53,9 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 {
 	Elf64_Phdr			*last;
 
-	packed->e_shoff += code_size;
 	last = get_last_segment_64(packed);
+	// fix section header table offset
+	packed->e_shoff += code_size + (last->p_memsz - last->p_filesz);
 	// if there is no section header table skip this function
 	if (shdr == NULL)
 		return (last->p_vaddr + last->p_memsz);
@@ -64,12 +64,11 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 	printf("[+] Moving e_shoff from %1$lu (%1$#lx) to %2$lu (%2$#lx)\n", packed->e_shoff - code_size, packed->e_shoff);
 	shdr = (void *)packed + packed->e_shoff;
 
-	// fix section header table offset
 	// fix sections offsets after injection
 	for (int i = 0; i < packed->e_shnum; i++)
 	{
-		if ((long)shdr->sh_offset > ((void *)injected_section - (void *)packed))
-			shdr->sh_offset += code_size;
+		if (shdr->sh_offset > last->p_filesz)
+			shdr->sh_offset += code_size + (last->p_memsz - last->p_filesz) ;
 		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
 	}
 
@@ -104,7 +103,7 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 			if (phdr == last)
 			{
 				phdr->p_memsz += code_size;
-				phdr->p_filesz += code_size;
+				phdr->p_filesz = phdr->p_memsz;
 			}
 			phdr->p_flags = PF_X | PF_W | PF_R;
 		}
@@ -149,7 +148,10 @@ void			handle_elf64(void *original, size_t original_size)
 	size_t		code_size; // size of the section to inject
 
 	code_size = 4096; // to replace with actual code size !
-	packed_size = original_size + code_size + sizeof(Elf64_Shdr);
+	Elf64_Phdr	*last = get_last_segment_64(original);
+	size_t		len_bss = (last->p_memsz - last->p_filesz);
+	
+	packed_size = original_size + code_size + sizeof(Elf64_Shdr) + len_bss;
 	if (!(packed = (void *)malloc(packed_size)))
 	{
 		printf("[!] Out of memory\n");
@@ -168,7 +170,7 @@ void			handle_elf64(void *original, size_t original_size)
 
 	Elf64_Addr	new_entry_point = update_packed(injected_section, packed, code_size, shdr);
 	printf("[+] New entry_point: %#lx\n", new_entry_point);
-	update_segments(packed, code_size);
+	update_segments(packed, code_size + len_bss);
 
 	// inject & encrypt
 	inject_code(injected_section, original, new_entry_point);
