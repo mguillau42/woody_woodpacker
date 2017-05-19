@@ -1,6 +1,5 @@
 section .text
 	global aes
-	; global unaes
 
 ; ENCRYPT
 aes:
@@ -75,59 +74,3 @@ aes_encrypt:
 	mov [rax], r9		; ^
 	leave
 	ret
-
-	; movdqa xmm1, [rdi]	; data stored in xmm1
-	; movdqa xmm2, [rsi]	; key stored in xmm2
-	; HOW TO DO THE FCKING FIRST STEP FFS WTF MAN.............
-	; AddRoundKey(xmm1, xmm1[12])
-
-	; aeskeygenassist xmm1, xmm1, 0
-	; xor rcx, rcx
-	; pextrb rcx, xmm2, 3
-	; movq xmm3, rcx
-	; pxor xmm2, xmm3
-	
-	; BELOW THIS, CODE SHOULD BE OK
-;     mov rcx, 1
-
-;     aesenc xmm1, xmm2
-;     inc rcx
-;     cmp rcx, 9
-;     jl aes_loop
-
-; aes_end:
-;     aesenclast xmm1, xmm2
-;     pextrq r8, xmm1, 0
-;     pextrq r9, xmm1, 1
-;     pop rax			; set transformed bytes
-;     ; MAYBE INVERT BYTE SEQUENCE ? WE'LL SEE ONCE FIRST STEP WILL BE OK
-;     mov [rax], r8
-;     mov [rax + 8], r9
-;     leave
-;     ret
-
-; DECRYPT
-; unaes:
-;     push rbp
-;     mov rbp, rsp
-;     push rdi		; save pointer to data
-;     movdqa xmm1, [rdi]	; data
-;     movdqa xmm3, [rsi]	; key
-;     mov rcx, 1
-
-; unaes_loop:
-;     aesdec xmm1, xmm3
-;     inc rcx
-;     cmp rcx, 9
-;     jl aes_loop
-
-; unaes_end:
-;     aesdeclast xmm1, xmm3
-;     pextrq r8, xmm1, 0
-;     pextrq r9, xmm1, 1
-;     pop rax			; set transformed bytes
-;     mov [rax], r8
-;     mov [rax + 8], r9
-;     leave
-;     ret
-
