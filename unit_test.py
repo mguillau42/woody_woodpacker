@@ -1,9 +1,11 @@
 import sys
+import shlex
 import os
 import signal
 import subprocess
 import argparse
 import textwrap
+import threading
 
 
 # absolute path to your nm_otool project
@@ -11,6 +13,20 @@ PROJECT_PATH = '/home/jed/woody_woodpacker'
 
 BIN_PATH = os.path.join(PROJECT_PATH, 'woody_woodpacker')
 
+
+def execute_timeout(cmd, t=2):
+    arg = ['timeout', str(t)] + shlex.split(cmd)
+    proc = subprocess.Popen(arg, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = proc.communicate()
+    try:
+        output = output.decode().rstrip()
+    except:
+        output = ''
+    error = error.decode().rstrip()
+    rc = proc.returncode
+    if rc == 124:
+        raise Exception('Process #%d killed after %f seconds' % (proc.pid, t))
+    return (output, rc, error)
 
 def execute(cmd):
     proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -23,6 +39,7 @@ def execute(cmd):
     rc = proc.returncode
     return (output, rc, error)
 
+
 def tests_woody(tests_array, args):
 
     errors = 0
@@ -33,9 +50,19 @@ def tests_woody(tests_array, args):
 
     for t in tests_array:
 
-        # execute nm and ft_nm
+        # try:
+        #     out , rc , err = execute("{} {}".format(BIN_PATH, t))
+        #     woody_out , woody_rc , woody_err = execute_timeout("{}".format("./woody"))
+        # except Exception as e:
+        #     print("[!] {} {}".format(t, str(e)))
+        #     continue
+
         out , rc , err = execute("{} {}".format(BIN_PATH, t))
         woody_out , woody_rc , woody_err = execute("{}".format("./woody"))
+        ps_out , ps_rc , ps_err = execute("{}".format("ps -ax | grep ./woody | wc -l"))
+
+        if ps_out != "1":
+            execute("pkill woody")
 
         # compare their return value and output
         if rc == -signal.SIGSEGV:
@@ -51,7 +78,7 @@ def tests_woody(tests_array, args):
             result = "\033[92mOK\033[0m"
 
         if args.errors and "OK" in result:
-           continue
+            continue
         print("\t+ {:{length}} {result}".format(t, length=max_len, result=result))
 
     return errors
@@ -84,6 +111,8 @@ def tests_main(args):
             files_to_test.append(absolute_path)
 
     print("[+] total amount of files to process: {}".format(len(files_to_test)))
+    print("[+] sorting files")
+    files_to_test = sorted(files_to_test, key=str.lower)
 
     # # launch tests
     errors += tests_woody(files_to_test, args)
