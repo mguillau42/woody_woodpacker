@@ -15,17 +15,19 @@ BIN_PATH = os.path.join(PROJECT_PATH, 'woody_woodpacker')
 
 
 def execute_timeout(cmd, t=2):
-    arg = ['timeout', str(t)] + shlex.split(cmd)
-    proc = subprocess.Popen(arg, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = proc.communicate()
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    try:
+        output, error = proc.communicate(timeout=t)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        return ("Timeout", 1,"Timeout")
     try:
         output = output.decode().rstrip()
     except:
         output = ''
     error = error.decode().rstrip()
     rc = proc.returncode
-    if rc == 124:
-        raise Exception('Process #%d killed after %f seconds' % (proc.pid, t))
     return (output, rc, error)
 
 def execute(cmd):
@@ -58,11 +60,11 @@ def tests_woody(tests_array, args):
         #     continue
 
         out , rc , err = execute("{} {}".format(BIN_PATH, t))
-        woody_out , woody_rc , woody_err = execute("{}".format("./woody"))
+        woody_out , woody_rc , woody_err = execute_timeout("{}".format("./woody"))
         ps_out , ps_rc , ps_err = execute("{}".format("ps -ax | grep ./woody | wc -l"))
 
-        if ps_out != "1":
-            execute("pkill woody")
+        if int(ps_out) > 1:
+            execute("pkill --signal SIGKILL woody")
 
         # compare their return value and output
         if rc == -signal.SIGSEGV:
@@ -70,6 +72,9 @@ def tests_woody(tests_array, args):
             errors += 1
         elif woody_rc == -signal.SIGSEGV or "Segmentation fault" in woody_err:
             result = "\033[91mwoody: SEGMENTATION FAULT\033[0m"
+            errors += 1
+        elif "Timeout" in woody_out:
+            result = "\033[91mwoody: Timeout\033[0m"
             errors += 1
         elif rc != 0:
             result = "\033[91mERROR\033[0m: woody_woodpacker returned {}".format(rc)
