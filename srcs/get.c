@@ -35,7 +35,7 @@ Elf64_Shdr				*get_section_entry_64(Elf64_Ehdr *hdr, Elf64_Addr entry)
 	shdr = (void *)hdr + hdr->e_shoff;
 	for (int i = 0; i < hdr->e_shnum; i++)
 	{
-		if (entry >= shdr->sh_addr && entry <= (shdr->sh_addr + shdr->sh_size))
+		if (entry >= shdr->sh_addr && entry < (shdr->sh_addr + shdr->sh_size))
 			return (shdr);
 		shdr = (void *)shdr + sizeof(Elf64_Shdr);
 	}
