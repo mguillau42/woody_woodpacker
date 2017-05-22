@@ -22,6 +22,7 @@
 # include <sys/types.h>
 # include <unistd.h>
 # include <stdlib.h>
+#include <sys/syscall.h>
 
 # include <libft.h>
 
@@ -39,5 +40,8 @@ Elf64_Phdr			*get_last_segment_64(Elf64_Ehdr *hdr);
 Elf64_Shdr			*get_shdr_table_64(Elf64_Ehdr *hdr, size_t original_size);
 
 void				handle_elf64(void *m, size_t original_size);
+
+void				*encrypt(void *data, size_t len, void *key);
+void				inject_code(void *injected_section, Elf64_Shdr *entry_shdr, Elf64_Ehdr *original_hdr, Elf64_Addr new_entry_point);
 
 #endif

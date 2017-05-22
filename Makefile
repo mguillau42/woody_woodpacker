@@ -13,15 +13,20 @@
 #### COMPILATION VARS ####
 NAME = woody_woodpacker
 CC = clang
+NASM = nasm
+NASM_FLAGS = -f elf64
 
 CFLAGS = -Wall -Wextra -Werror -g
-C_FILES =	main.c \
+C_FILES =	get.c \
 			handle_elf64.c \
+			inject.c \
 			print.c \
-			get.c
+			main.c
+
+S_FILES = encrypt.s
 
 SRCS = $(addprefix srcs/,$(C_FILES))
-O_FILES = $(C_FILES:.c=.o)
+O_FILES = $(C_FILES:.c=.o) $(S_FILES:.s=.o)
 OBJ = $(addprefix obj/,$(O_FILES))
 H_FILES = woody.h
 INCLUDES = $(addprefix includes/,$(H_FILES))
@@ -64,6 +69,12 @@ obj/%.o: srcs/%.c $(INCLUDES)
 	@mkdir -p obj
 	@printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
 	@$(CC) $(CFLAGS) -o $@ -c $< $(COMPILE_FLAGS)
+	@printf "$(LGREEN)OK$(NC)\n"
+
+obj/%.o: srcs/%.s
+	@mkdir -p obj
+	@printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
+	@$(NASM) $(NASM_FLAGS) -o $@ $<
 	@printf "$(LGREEN)OK$(NC)\n"
 
 clean:
