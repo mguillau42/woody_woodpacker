@@ -92,7 +92,6 @@ encrypt_xor:
 	and rcx, 0xf			; extracts first 4 bits from len == result of len % 16
 	pextrq rdx, xmm8, 0		; set the xor key
 
-
 encrypt_xor_loop:
 	cmp rcx, 0
 	je encrypt_end
@@ -100,6 +99,7 @@ encrypt_xor_loop:
 	inc rdi
 	dec rcx
 	ror rdx, 8
+	jmp encrypt_xor_loop
 
 encrypt_end:
 	pop rax					; get back ptr to data
