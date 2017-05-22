@@ -23,7 +23,8 @@ C_FILES =	get.c \
 			print.c \
 			main.c
 
-S_FILES = encrypt.s
+S_FILES =	encrypt.s \
+			decrypt.s
 
 SRCS = $(addprefix srcs/,$(C_FILES))
 O_FILES = $(C_FILES:.c=.o) $(S_FILES:.s=.o)

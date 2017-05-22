@@ -111,17 +111,6 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 	}
 }
 
-/* static void					encrypt(Elf64_Ehdr *hdr, Elf64_Shdr *entry_shdr)*/
-/* {*/
-/*     unsigned char		*entry_content;*/
-
-/*     entry_content = (void *)hdr + entry_shdr->sh_offset;*/
-/*     for (unsigned long i = 0; i < entry_shdr->sh_size; i++)*/
-/*     {*/
-/*         entry_content[i] = entry_content[i] ^ 42;*/
-/*     }*/
-/* }*/
-
 void			handle_elf64(void *original, size_t original_size)
 {
 	void		*packed; // packed file
@@ -154,13 +143,11 @@ void			handle_elf64(void *original, size_t original_size)
 	printf("[+] New entry_point: %#lx\n", new_entry_point);
 	update_segments(packed, code_size + len_bss);
 
-	// inject & encrypt
-	// basic encryption
+	// encrypt
 	Elf64_Ehdr	*packed_hdr = packed;
 	Elf64_Shdr *entry_shdr = get_section_entry_64(packed, packed_hdr->e_entry);
-	
-	// encrypt
 	void *key;
+
 	key = ft_memalloc(16);
 	if (!key)
 	{
@@ -178,7 +165,13 @@ void			handle_elf64(void *original, size_t original_size)
 
 	printf("[+] Encrypting %1$lu (%1$#lx) - %2$lu (%2$#lx): size %3$lu (%3$#lx)\n", entry_shdr->sh_offset, entry_shdr->sh_offset + entry_shdr->sh_size, entry_shdr->sh_size);
 	encrypt((void *)packed_hdr + entry_shdr->sh_offset, entry_shdr->sh_size, key);
-	/* inject_code(injected_section, entry_shdr, original, new_entry_point);*/
+
+	// code injection
+	if (!inject_code(injected_section, entry_shdr, original, new_entry_point, key))
+	{
+		free(packed);
+		return ;
+	}
 
 	// change entry point
 	packed_hdr->e_entry = new_entry_point;

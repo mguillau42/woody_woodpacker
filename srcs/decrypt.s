@@ -12,17 +12,17 @@ decrypt:
 	; Print WOODY
 	mov rax, 1				; syscall write
 	mov rdi, rax			; stdout
-	lea rsi, [str_woody]	; ptr to the string to write
+	lea rsi, [rel str_woody]	; ptr to the string to write
 	mov rdx, 16				; length of the string
 	syscall
 	; Key expansion, xmm0-10 will store key schedule
-	movdqu xmm11, [key]
+	movdqu xmm11, [rel key]
 	call key_expansion
 	; Set loop counter
-	mov rcx, [len]
+	mov rcx, [rel len]
 	push rcx
 	shr rcx, 4				; len /= 16 --> number of loops to do
-	mov rdi, [to_decrypt]
+	mov rdi, [rel to_decrypt]
 
 decrypt_loop:
 	; Loop condition --> rcx > 0
@@ -51,7 +51,7 @@ decrypt_loop:
 	jmp decrypt_loop
 
 decrypt_xor:
-	mov rdx, [key]
+	mov rdx, [rel key]
 	pop rcx					; get back initial len
 	and rcx, 0xf			; extracts first 4 bits from len == result of len % 16
 
@@ -72,7 +72,7 @@ decrypt_end:
 	pop rsi
 	pop rdi
 	popf
-	ret
+	jmp [rel to_jump]
 
 ; Fills registers xmm0-10 with the round keys
 key_expansion:
@@ -133,5 +133,8 @@ key_expansion_128:
 ; RODATA
 str_woody:	db "....WOODY.....", 10, 0							; Woody string (16 bytes long)
 key:		db 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42	; 128-bit key
-to_decrypt:	db 27, 27, 27, 27, 27, 27, 27, 27							; Default entrypoint of the binary
+to_decrypt:	db 27, 27, 27, 27, 27, 27, 27, 27							; start of the encrypted section
 len:		db 54, 54, 54, 54, 54, 54, 54, 54							; len of the section to decrypt (in bytes)
+to_jump:	db 14, 14, 14, 14, 14, 14, 14, 14							; original entry point
+
+
