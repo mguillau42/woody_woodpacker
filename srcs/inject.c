@@ -125,9 +125,6 @@ void	*inject_code(void *injected_section, Elf64_Shdr *entry_shdr, Elf64_Ehdr *or
 
 	Elf64_Shdr		*text_shdr = get_section_bytype_64(hdr, SHT_PROGBITS);
 	void			*text = (void *)hdr + text_shdr->sh_offset;
-	/* Elf64_Shdr		*test_tab = get_section_bytype_64((void *)hdr, SHT_STRTAB);*/
-	/* char			*lol = (void *)shellcode + test_tab->sh_offset;*/
-	/* printf("[+] SECTION : %s\n", lol + text->sh_name);*/
 
 	for (Elf64_Sym *sym = (void *)shellcode + symtab->sh_offset; (void *)sym < ((void *)shellcode + symtab->sh_offset + symtab->sh_size); sym = (void *)sym + sizeof(Elf64_Sym))
 	{
@@ -137,11 +134,19 @@ void	*inject_code(void *injected_section, Elf64_Shdr *entry_shdr, Elf64_Ehdr *or
 		}
 		else if (ft_strequ(strtab + sym->st_name, "to_decrypt"))
 		{
-			ft_memcpy((void *)text + sym->st_value, &entry_shdr->sh_addr, 8);
+			int	offset_inst = sym->st_value;
+			Elf64_Addr	jump_inst = new_entry_point + offset_inst;
+			int	jump_offset = entry_shdr->sh_addr - jump_inst;
+			jump_offset = jump_offset < 0 ? -jump_offset : jump_offset;
+			ft_memcpy((void *)text + sym->st_value, &jump_offset, 4);
 		}
 		else if (ft_strequ(strtab + sym->st_name, "to_jump"))
 		{
-			ft_memcpy((void *)text + sym->st_value, &original_hdr->e_entry, 8);
+			int	offset_inst = sym->st_value;
+			Elf64_Addr	jump_inst = new_entry_point + offset_inst;
+			int	jump_offset = original_hdr->e_entry - jump_inst;
+			jump_offset = jump_offset < 0 ? -jump_offset : jump_offset;
+			ft_memcpy((void *)text + sym->st_value, &jump_offset, 4);
 		}
 		else if (ft_strequ(strtab + sym->st_name, "len"))
 		{
