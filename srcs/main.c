@@ -75,8 +75,7 @@ int				main(int ac, char **av)
 {
 	char			*filename;
 	struct stat		buf;
-	void			*original;
-	unsigned char	*p;
+	unsigned char	*original;
 	void			*key = NULL;
 
 	if (ac != 2 && ac != 4)
@@ -90,14 +89,12 @@ int				main(int ac, char **av)
 			return (EXIT_FAILURE);
 	if (!(original = load_original_binary(filename, &buf)))
 		return (EXIT_FAILURE);
-	// check ELF file format
-	p = original;
-	if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS64)
+	if (!ft_memcmp(ELFMAG, original, SELFMAG) && original[EI_CLASS] == ELFCLASS64)
 	{
 		if (handle_elf64(original, buf.st_size, key))
 			return (EXIT_FAILURE);
 	}
-	else if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS32)
+	else if (!ft_memcmp(ELFMAG, original, SELFMAG) && original[EI_CLASS] == ELFCLASS32)
 	{
 		printf("[!] Provided binary is an ELF32. Not implemented\n");
 		return (EXIT_FAILURE);

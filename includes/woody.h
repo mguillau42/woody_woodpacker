@@ -36,7 +36,7 @@ Elf64_Shdr			*get_shdr_table_64(Elf64_Ehdr *hdr, size_t original_size);
 /*
 ** HANDLE_ELF64.C
 */
-int					handle_elf64(void *m, size_t original_size, void *key_param);
+int					handle_elf64(void *m, size_t original_size, void *key);
 
 /*
 ** INJECT.C

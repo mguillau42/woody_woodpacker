@@ -18,20 +18,16 @@
  */
 static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, size_t original_size, size_t code_size)
 {
-	// copy original until end of last segment into packed
 	Elf64_Ehdr		*hdr;
 	size_t			len;
+	size_t len_bss = last->p_memsz - last->p_filesz;	// copy until end of DATA segment
 
 	hdr = original;
 	len = last->p_offset + last->p_filesz;	// copy until end of DATA segment
 	ft_memcpy(packed, original, len);
 	packed += len;
 	original += len;
-
-	// get bss section len
-	size_t len_bss = last->p_memsz - last->p_filesz;	// copy until end of DATA segment
 	packed += len_bss;
-	// append rest at + code size to reserve space for our new section
 	ft_memcpy(packed + code_size , original, original_size - len);
 	return (packed);
 }
@@ -41,7 +37,6 @@ static void *			prepare_injection(Elf64_Ehdr *original, Elf64_Ehdr *packed, size
 	Elf64_Phdr		*last;
 	void			*injected_section;
 
-	// find last segment
 	if (!(last = get_last_segment_64(original)))
 	{
 		printf("[!] No segment found !\n");
@@ -61,32 +56,22 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 	Elf64_Phdr			*last;
 
 	last = get_last_segment_64(packed);
-	// fix section header table offset
 	packed->e_shoff += code_size + (last->p_memsz - last->p_filesz);
-	// if there is no section header table skip this function
 	if (shdr == NULL)
 		return (last->p_vaddr + last->p_memsz);
-
-	// get the actual shdr table after inection
 	shdr = (void *)packed + packed->e_shoff;
-
-	// fix sections offsets after injection
 	for (int i = 0; i < packed->e_shnum; i++)
 	{
 		if (shdr->sh_offset > (last->p_offset + last->p_filesz)) // REMOVE P_OFFSET ?
 			shdr->sh_offset += code_size + (last->p_memsz - last->p_filesz) ;
 		shdr = (void *)shdr +  sizeof(Elf64_Shdr);
 	}
-
-	// fill new section
 	shdr->sh_type = SHT_PROGBITS;
 	shdr->sh_flags = 6;
 	shdr->sh_offset = ((void *)injected_section - (void *)packed);
 	shdr->sh_addr = (last->p_vaddr - last->p_offset) + shdr->sh_offset;
 	shdr->sh_size = code_size;
 	shdr->sh_addralign = 16;
-
-	// finally increase section number
 	packed->e_shnum++;
 	return (shdr->sh_addr);
 }
@@ -101,7 +86,6 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 
 	phdr = (void *)hdr + hdr->e_phoff;
 	last = get_last_segment_64(hdr);
-	// iterate through each program headers
 	for (int i = 0; i < hdr->e_phnum; i++)
 	{
 		if (phdr->p_type == PT_LOAD)
@@ -117,18 +101,19 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 	}
 }
 
-static int			encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep, void *shellcode, void *key_param)
+static int			encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep, void *shellcode, void *key)
 {
-	void			*key;
 	Elf64_Shdr		*entry_shdr = get_section_entry_64(packed, ((Elf64_Ehdr *)packed)->e_entry);
 
-	if (!key_param)
+	if (!key)
 	{
-		key = ft_memalloc(16);
+		if (!(key = ft_memalloc(16)))
+		{
+			printf("[!] Out of memory.\n");
+			return (EXIT_FAILURE);
+		}
 		syscall(SYS_getrandom, key, 16, 0);
 	}
-	else
-		key = key_param;
 	printf("[+] key: ");
 	for (int i = 0; i < 16; ++i)
 		printf("%02hhX", ((unsigned char *)key)[i]);
@@ -177,7 +162,7 @@ static void			*get_shellcode(size_t *code_size)
 	return (shellcode);
 }
 
-int				handle_elf64(void *original, size_t original_size, void *key_param)
+int				handle_elf64(void *original, size_t original_size, void *key)
 {
 	int			fd;
 	void		*packed; // packed file
@@ -200,17 +185,13 @@ int				handle_elf64(void *original, size_t original_size, void *key_param)
 	}
 	if (!(injected_section = prepare_injection(original, packed, original_size, code_size)))
 		return (EXIT_FAILURE);
-	// get the shdr table if there is one
 	if (!(shdr = get_shdr_table_64(original, original_size)))
 		printf("[!] No section header table found\n");
-
 	new_entry_point = update_packed(injected_section, packed, code_size, shdr);
 	update_segments(packed, code_size + len_bss);
-	if (encrypt_and_inject(packed, injected_section, original, new_entry_point, shellcode, key_param))
+	if (encrypt_and_inject(packed, injected_section, original, new_entry_point, shellcode, key))
 		return (EXIT_FAILURE);
-	// change entry point
 	((Elf64_Ehdr *)packed)->e_entry = new_entry_point;
-
 	if ((fd = open("woody", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )) < 0)
 	{
 		perror("[!]");

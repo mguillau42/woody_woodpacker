@@ -13,7 +13,7 @@
 section .text
 
 decrypt:
-	; Save all flags + registers 
+	; Save all flags + registers
 	pushf
 	push rdi
 	push rsi
