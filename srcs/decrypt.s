@@ -34,55 +34,50 @@ decrypt:
 	mov rcx, [rel len]				; Get size of section to decrypt
 	push rcx						; Save len in stack
 	shr rcx, 4						; len /= 16 --> number of loops to do
-	;mov r8, [rel to_decrypt]		; value of to_decrypt (relative to its position)
-	;lea r9, [rel decrypt_value]		; position of the instruction
-	;lea r10, [rel to_decrypt]		; address of to_decrypt
-	;sub r10, r9						; store delta between those two addresses in r10
-	;add r9, r10						; ARE WE STUPID???
-	;sub r9, r8						; substract relative delta (section to decrypt is always before our new section)
 	lea rdi, [rel to_decrypt]		
 	sub rdi, [rdi]
-;decrypt_value:
-;	mov rdi, r9
 
 decrypt_loop:
 	; Loop condition --> rcx > 0
 	cmp rcx, 0
 	je decrypt_xor
-	; ENCRYPTION SEQUENCE
+	; DECRYPTION SEQUENCE
 	movdqu xmm15, [rdi]
-	pxor xmm15, xmm10		; Whitening step (Round 0)
-	aesdec xmm15, xmm9		; Round 1
-	aesdec xmm15, xmm8		; Round 2
-	aesdec xmm15, xmm7		; Round 3
-	aesdec xmm15, xmm6		; Round 4
-	aesdec xmm15, xmm5		; Round 5
-	aesdec xmm15, xmm4		; Round 6
-	aesdec xmm15, xmm3		; Round 7
-	aesdec xmm15, xmm2		; Round 8
-	aesdec xmm15, xmm1		; Round 9
-	aesdeclast xmm15, xmm0	; Round 10
+	pxor xmm15, xmm10			; Whitening step (Round 0)
+	aesdec xmm15, xmm9			; Round 1
+	aesdec xmm15, xmm8			; Round 2
+	aesdec xmm15, xmm7			; Round 3
+	aesdec xmm15, xmm6			; Round 4
+	aesdec xmm15, xmm5			; Round 5
+	aesdec xmm15, xmm4			; Round 6
+	aesdec xmm15, xmm3			; Round 7
+	aesdec xmm15, xmm2			; Round 8
+	aesdec xmm15, xmm1			; Round 9
+	aesdeclast xmm15, xmm0		; Round 10
 	; Write decrypted data in memory
-	pextrq r8, xmm15, 0		; extracts bits 0-63 and stores them in r8
-	pextrq r9, xmm15, 1		; extracts bits 64-127 and stores them in r9
-	mov [rdi], r8			; writes decrypted bytes in memory
-	mov [rdi + 8], r9		; ^
+	pextrq [rdi], xmm15, 0		; extracts bits 0-63 and writes them in memory
+	pextrq [rdi + 8], xmm15, 1	; extracts bits 64-127 and writes them in memory
+	; Iteration
 	add rdi, 16
 	dec rcx
 	jmp decrypt_loop
 
+; In the case where the data to decrypt is not a multiple of 16 bytes, we XOR the last bytes with the default key
 decrypt_xor:
 	mov rdx, [rel key]
-	pop rcx					; get back initial len
-	and rcx, 0xf			; extracts first 4 bits from len == result of len % 16
+	pop rcx						; get back initial len
+	and rcx, 0xf				; extracts first 4 bits from len (which is the result of len % 16)
 
 decrypt_xor_loop:
+	; Loop condition
 	cmp rcx, 0
 	je decrypt_end
-	xor byte [rdi], dl
+	; Computation
+	xor byte [rdi], dl			; we XOR the byte in memory with the lower byte of the key
+	; Iteration
 	inc rdi
 	dec rcx
-	ror rdx, 8
+	ror rdx, 8					; We rotate the key on right so the XOR key isn't the same for each byte (except if the key is in the form AAAAAAAA (where A is a byte))
 	jmp decrypt_xor_loop
 
 decrypt_end:
@@ -94,17 +89,10 @@ decrypt_end:
 	pop rsi
 	pop rdi
 	popf
-	;mov r8, [rel to_jump]		; value of to_decrypt
-	;lea r9, [rel jump_value]	; adress of decrypt value
-	;lea r10, [rel to_jump]	; adress of to_decrypt
-	;sub r10, r9					; delta
-	;add r9, r10
-	;sub r9, r8
+	; Set address to jump now that we decrypted
 	lea r8, [rel to_jump]
 	sub r8, [r8]
 	jmp r8
-;jump_value:
-	;jmp r9
 
 ; Fills registers xmm0-10 with the round keys
 key_expansion:

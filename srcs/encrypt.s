@@ -17,15 +17,15 @@ section .text
 encrypt:
 	push rbp
 	mov rbp, rsp
-	push rdi				; Save pointer to data
-	push rsi				; Save len
-	push rdx
+	push rdi					; Save pointer to data
+	push rsi					; Save len
+	push rdx					; Save pointer to the default key
 	; Key expansion, xmm0-10 will store key schedule
-	movdqu xmm11, [rdx]
+	movdqu xmm11, [rdx]			; Store default key in xmm11
 	call key_expansion
 	; Set loop counter
 	mov rcx, rsi
-	shr rcx, 4				; len /= 16 --> number of loops to do
+	shr rcx, 4					; len /= 16 --> number of loops to do
 
 encrypt_loop:
 	; Loop condition --> rcx > 0
@@ -33,43 +33,46 @@ encrypt_loop:
 	je encrypt_xor
 	; ENCRYPTION SEQUENCE
 	movdqu xmm15, [rdi]
-	pxor xmm15, xmm0		; Whitening step (Round 0)
-	aesenc xmm15, xmm1		; Round 1
-	aesenc xmm15, xmm2		; Round 2
-	aesenc xmm15, xmm3		; Round 3
-	aesenc xmm15, xmm4		; Round 4
-	aesenc xmm15, xmm5		; Round 5
-	aesenc xmm15, xmm6		; Round 6
-	aesenc xmm15, xmm7		; Round 7
-	aesenc xmm15, xmm8		; Round 8
-	aesenc xmm15, xmm9		; Round 9
-	aesenclast xmm15, xmm10	; Round 10
+	pxor xmm15, xmm0			; Whitening step (Round 0)
+	aesenc xmm15, xmm1			; Round 1
+	aesenc xmm15, xmm2			; Round 2
+	aesenc xmm15, xmm3			; Round 3
+	aesenc xmm15, xmm4			; Round 4
+	aesenc xmm15, xmm5			; Round 5
+	aesenc xmm15, xmm6			; Round 6
+	aesenc xmm15, xmm7			; Round 7
+	aesenc xmm15, xmm8			; Round 8
+	aesenc xmm15, xmm9			; Round 9
+	aesenclast xmm15, xmm10		; Round 10
 	; Write encrypted data in memory
-	pextrq r8, xmm15, 0		; extracts bits 0-63 and stores them in r8
-	pextrq r9, xmm15, 1		; extracts bits 64-127 and stores them in r9
-	mov [rdi], r8			; writes encrypted bytes in memory
-	mov [rdi + 8], r9		; ^
-	add rdi, 16
+	pextrq [rdi], xmm15, 0		; extracts bits 0-63 and writes them in memory
+	pextrq [rdi + 8], xmm15, 1	; extracts bits 64-127 and writes them in memory
+	add rdi, 16					; We encrypt data 16 bytes by 16 bytes
+	; Iteration
 	dec rcx
 	jmp encrypt_loop
 
+; In the case where the data to encrypt is not a multiple of 16 bytes, we XOR the last bytes with the default key
 encrypt_xor:
 	pop rdx
-	mov rdx, [rdx]			; use initial key as XOR key for the last bytes (64 first bits to be exact)
-	pop rcx					; get back initial len
-	and rcx, 0xf			; extracts first 4 bits from len == result of len % 16
+	mov rdx, [rdx]				; use initial key as XOR key for the last bytes (64 first bits to be exact)
+	pop rcx						; get back initial len
+	and rcx, 0xf				; extracts first 4 bits from len == result of len % 16
 
 encrypt_xor_loop:
+	; Loop condition
 	cmp rcx, 0
 	je encrypt_end
-	xor byte [rdi], dl
+	; Computation
+	xor byte [rdi], dl			; we XOR the byte in memory with the lower byte of the key
+	; Iteration
 	inc rdi
 	dec rcx
-	ror rdx, 8
+	ror rdx, 8					; We rotate the key on right so the XOR key isn't the same for each byte (except if the key is in the form AAAAAAAA (where A is a byte))
 	jmp encrypt_xor_loop
 
 encrypt_end:
-	pop rax					; get back ptr to data
+	pop rax						; get back ptr to data
 	leave
 	ret
 

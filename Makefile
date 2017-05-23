@@ -60,7 +60,7 @@ all: $(NAME)
 $(NAME): $(OBJ)
 	@/usr/bin/printf "[WOODY_WOODPACKER]: Compiling $(GREEN)$(NAME)$(NC)... "
 	@$(CC) $(CFLAGS) -o $(NAME) $(OBJ)
-	@/bin/cat obj/decrypt.o >> $(NAME)
+	@/bin/cp obj/decrypt.o inject_me
 	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
 	@/usr/bin/printf "[WOODY_WOODPACKER]: $(RED)ALL DONE$(NC)\n"
 
@@ -85,7 +85,7 @@ clean:
 
 fclean: clean
 	@/usr/bin/printf "[WOODY_WOODPACKER]: Removing $(PURPLE)$(NAME)$(NC)... "
-	@/bin/rm -f $(NAME) woody
+	@/bin/rm -f $(NAME) woody inject_me
 	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
 
 re: fclean all
