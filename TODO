@@ -1,0 +1,8 @@
+	X modifier entrypoint
+	X modifier nsect
+	X ajouter section apres bss / tout decaler
+	X injecter code
+	X modifier p_flags pour ajouter droit d'ecriture au segment contenant la section .text + droit d'exec au segment contenant notre section toute neuve
+	X Faire algo d'encryption de la section text
+	- Fare algo de decryption de la section text et l'ajouter au code a injecter (avant le print de WOODY serait plus simple ?)
+

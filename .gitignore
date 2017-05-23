@@ -1,5 +1,10 @@
 *.o
 *.a
+*.swp
 a.out
 woody_woodpacker
 woody
+.gdb_history
+peda-session-*.txt
+*.swo
+*.swn
