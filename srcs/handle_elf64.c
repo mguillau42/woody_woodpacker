@@ -23,8 +23,6 @@ static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, siz
 	size_t			len;
 
 	hdr = original;
-	printf("[+] Section header table offset: %lu (%#lx)\n", hdr->e_shoff, hdr->e_shoff);
-
 	len = last->p_offset + last->p_filesz;	// copy until end of DATA segment
 	ft_memcpy(packed, original, len);
 	packed += len;
@@ -33,8 +31,6 @@ static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, siz
 	// get bss section len
 	size_t len_bss = last->p_memsz - last->p_filesz;	// copy until end of DATA segment
 	packed += len_bss;
-	printf("[+] Inserting %lu free bytes after bss\n", len_bss);
-	printf("[+] Inserting %lu free bytes at file offset %lu (%#zx)\n", code_size, len, len);
 	// append rest at + code size to reserve space for our new section
 	ft_memcpy(packed + code_size , original, original_size - len);
 	return (packed);
@@ -51,7 +47,6 @@ static void *			prepare_injection(Elf64_Ehdr *original, Elf64_Ehdr *packed, size
 		printf("[!] No segment found !\n");
 		return (NULL);
 	}
-	printf("[+] Last segment start: %1$lu (%1$#lx) end_file: %2$lu (%2$#lx), end_mem: %3$lu (%3$#lx)\n", last->p_offset, last->p_offset + last->p_filesz, last->p_offset + last->p_memsz);
 	injected_section = reserve_space(original, packed, last, original_size, code_size);
 	return (injected_section);
 }
@@ -73,7 +68,6 @@ static Elf64_Addr		update_packed(void *injected_section, Elf64_Ehdr *packed, siz
 		return (last->p_vaddr + last->p_memsz);
 
 	// get the actual shdr table after inection
-	printf("[+] Moving e_shoff from %1$lu (%1$#lx) to %2$lu (%2$#lx)\n", packed->e_shoff - code_size, packed->e_shoff);
 	shdr = (void *)packed + packed->e_shoff;
 
 	// fix sections offsets after injection
