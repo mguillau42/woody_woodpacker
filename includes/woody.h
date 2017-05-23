@@ -53,6 +53,13 @@ void				*ft_memcpy(void *dst, const void *src, size_t n);
 int					ft_strequ(char const *s1, char const *s2);
 
 /*
+** STR_TO_HEX.C
+*/
+int					str_to_hex(const char *str);
+char				*str_tolower(char *str);
+int					ft_strlen(const char *s);
+
+/*
 ** ENCRYPT.S
 */
 void				*encrypt(void *data, size_t len, void *key);
