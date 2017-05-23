@@ -123,82 +123,69 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 	}
 }
 
-void			handle_elf64(void *original, size_t original_size)
+static int		encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep)
 {
+	void		*key = ft_memalloc(16);
+	Elf64_Shdr	*entry_shdr = get_section_entry_64(packed, ((Elf64_Ehdr *)packed)->e_entry);
+
+	syscall(SYS_getrandom, key, 16, 0);
+	printf("[+] key: ");
+	for (int i = 0; i < 16; ++i)
+		printf("%hhX", ((unsigned char *)key)[i]);
+	printf("\n");
+	encrypt(packed + entry_shdr->sh_offset, entry_shdr->sh_size, key);
+	if (!inject_code(injected_section, entry_shdr, original, new_ep, key))
+	{
+		free(packed);
+		free(key);
+		return (EXIT_FAILURE);
+	}
+	return (EXIT_SUCCESS);
+}
+
+int				handle_elf64(void *original, size_t original_size)
+{
+	int			fd;
 	void		*packed; // packed file
 	void		*injected_section; // pointer to the new section
 	size_t		packed_size; // size of the packed file
 	size_t		code_size; // size of the section to inject
-
-	code_size = 4096; // to replace with actual code size !
+	Elf64_Shdr	*shdr;
 	Elf64_Phdr	*last = get_last_segment_64(original);
 	size_t		len_bss = (last->p_memsz - last->p_filesz);
-	
+	Elf64_Addr	new_entry_point;
+
+	code_size = 4096; // TODO to replace with actual code size !
 	packed_size = original_size + code_size + sizeof(Elf64_Shdr) + len_bss;
-	if (!(packed = (void *)malloc(packed_size)))
+	if (!(packed = (void *)ft_memalloc(packed_size)))
 	{
 		printf("[!] Out of memory\n");
-		return ;
+		return (EXIT_FAILURE);
 	}
-	ft_bzero(packed, packed_size);
-
-	injected_section = prepare_injection(original, packed, original_size, code_size);
-	if (injected_section == NULL)
-		return ;
-
+	if (!(injected_section = prepare_injection(original, packed, original_size, code_size)))
+		return (EXIT_FAILURE);
 	// get the shdr table if there is one
-	Elf64_Shdr	*shdr;
 	if (!(shdr = get_shdr_table_64(original, original_size)))
 		printf("[!] No section header table found\n");
 
-	Elf64_Addr	new_entry_point = update_packed(injected_section, packed, code_size, shdr);
-	printf("[+] New entry_point: %#lx\n", new_entry_point);
+	new_entry_point = update_packed(injected_section, packed, code_size, shdr);
 	update_segments(packed, code_size + len_bss);
-
-	// encrypt
-	Elf64_Ehdr	*packed_hdr = packed;
-	Elf64_Shdr *entry_shdr = get_section_entry_64(packed, packed_hdr->e_entry);
-	void *key;
-
-	key = ft_memalloc(16);
-	if (!key)
-	{
-		printf("[!] Out of memory\n");
-		return;
-	}
-	// TODO set flag GRND_NONBLOCK, syscall return is -1 and ERRNO is EAGAIN
-	syscall(SYS_getrandom, key, 16, 0);
-	printf("[+] key: ");
-	for (int i = 0; i < 16; ++i)
-	{
-		printf("%hhX", ((unsigned char *)key)[i]);
-	}
-	printf("\n");
-
-	printf("[+] Encrypting %1$lu (%1$#lx) - %2$lu (%2$#lx): size %3$lu (%3$#lx)\n", entry_shdr->sh_offset, entry_shdr->sh_offset + entry_shdr->sh_size, entry_shdr->sh_size);
-	encrypt((void *)packed_hdr + entry_shdr->sh_offset, entry_shdr->sh_size, key);
-
-	// code injection
-	if (!inject_code(injected_section, entry_shdr, original, new_entry_point, key))
-	{
-		free(packed);
-		return ;
-	}
-
+	if (encrypt_and_inject(packed, injected_section, original, new_entry_point))
+		return (EXIT_FAILURE);
 	// change entry point
-	packed_hdr->e_entry = new_entry_point;
-
-	// output packed file
-	printf("[+] Packed file size: %lu\n", packed_size);
-	printf("[+] Writing packed binary\n");
-	int fd;
+	((Elf64_Ehdr *)packed)->e_entry = new_entry_point;
 
 	if ((fd = open("woody", O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH )) < 0)
 	{
 		perror("[!]");
-		return ;
+		return (EXIT_FAILURE);
 	}
 	write(fd, packed, packed_size);
-	close(fd);
 	free(packed);
+	if (close(fd) < 0)
+	{
+		perror("[!]");
+		return (EXIT_FAILURE);
+	}
+	return (EXIT_SUCCESS);
 }
