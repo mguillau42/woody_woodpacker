@@ -1,38 +1,38 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: fventuri <fventuri@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2014/11/05 19:19:08 by fventuri          #+#    #+#              #
-#    Updated: 2017/05/11 13:09:53 by fventuri         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
+# ============================================================================= #
+#                                                                               #
+#               ╦ ╦╔═╗╔═╗╔╦╗╦ ╦  ╦ ╦╔═╗╔═╗╔╦╗╔═╗╔═╗╔═╗╦╔═╔═╗╦═╗                 #
+#               ║║║║ ║║ ║ ║║╚╦╝  ║║║║ ║║ ║ ║║╠═╝╠═╣║  ╠╩╗║╣ ╠╦╝                 #
+#               ╚╩╝╚═╝╚═╝═╩╝ ╩   ╚╩╝╚═╝╚═╝═╩╝╩  ╩ ╩╚═╝╩ ╩╚═╝╩╚═                 #
+#                                                                               #
+#                                                                               #
+#                          mguillau42 and FlorianVenturini                      #
+#             <mguillau@student.42.fr> | <fventuri@student.42.fr>               #
+#                                                                               #
+# ============================================================================= #
 
 #### COMPILATION VARS ####
 NAME = woody_woodpacker
-CC = clang
-NASM = nasm
+CC = /usr/bin/clang
+CFLAGS = -Wall -Wextra -Werror
+NASM = /usr/bin/nasm
 NASM_FLAGS = -f elf64
 
-CFLAGS = -Wall -Wextra -Werror -g
 C_FILES =	get.c \
 			handle_elf64.c \
 			inject.c \
-			print.c \
-			main.c
+			libft.c \
+			main.c \
+			print.c
 
-S_FILES =	encrypt.s \
-			decrypt.s
+S_FILES =	decrypt.s \
+			encrypt.s
 
-SRCS = $(addprefix srcs/,$(C_FILES))
+SRCS = $(addprefix srcs/,$(C_FILES)) $(addprefix srcs/,$(S_FILES))
 O_FILES = $(C_FILES:.c=.o) $(S_FILES:.s=.o)
 OBJ = $(addprefix obj/,$(O_FILES))
 H_FILES = woody.h
 INCLUDES = $(addprefix includes/,$(H_FILES))
-LIBFT = -L libft -lft
-COMPILE_FLAGS = -I includes -I libft/includes
+COMPILE_FLAGS = -I includes
 
 #### COLORS ####
 NC		= \033[0m
@@ -53,43 +53,39 @@ LPURPLE	= \033[1;35m
 LCYAN	= \033[1;36m
 WHITE	= \033[1;37m
 
-.PHONY: clean fclean re libft
+.PHONY: clean fclean re
 
 all: $(NAME)
 
-$(NAME): libft $(OBJ)
-	@printf "[WOODY_WOODPACKER]: Compiling $(GREEN)$(NAME)$(NC)... "
-	@$(CC) $(CFLAGS) -o $(NAME) $(OBJ) $(LIBFT)
-	@printf "$(LGREEN)OK$(NC)\n"
-	@printf "[WOODY_WOODPACKER]: $(RED)ALL DONE$(NC)\n"
-
-libft:
-	@make -s -C libft/
+$(NAME): $(OBJ)
+	@/usr/bin/printf "[WOODY_WOODPACKER]: Compiling $(GREEN)$(NAME)$(NC)... "
+	@$(CC) $(CFLAGS) -o $(NAME) $(OBJ)
+	@/bin/cat obj/decrypt.o >> $(NAME)
+	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
+	@/usr/bin/printf "[WOODY_WOODPACKER]: $(RED)ALL DONE$(NC)\n"
 
 obj/%.o: srcs/%.c $(INCLUDES)
-	@mkdir -p obj
-	@printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
+	@/bin/mkdir -p obj
+	@/usr/bin/printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
 	@$(CC) $(CFLAGS) -o $@ -c $< $(COMPILE_FLAGS)
-	@printf "$(LGREEN)OK$(NC)\n"
+	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
 
 obj/%.o: srcs/%.s
 	@mkdir -p obj
-	@printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
+	@/usr/bin/printf "[WOODY_WOODPACKER]: Compiling $(BLUE)$<$(NC) --> $(BLUE)$@$(NC)... "
 	@$(NASM) $(NASM_FLAGS) -o $@ $<
-	@printf "$(LGREEN)OK$(NC)\n"
+	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
 
 clean:
-	@make -s -C libft/ clean
 	@if [ -d obj ]; then \
-		printf "[WOODY_WOODPACKER]: Removing $(PURPLE).o files$(NC)... "; \
-		rm -rf obj; \
-		printf "$(LGREEN)OK$(NC)\n"; \
+		/usr/bin/printf "[WOODY_WOODPACKER]: Removing $(PURPLE).o files$(NC)... "; \
+		/bin/rm -rf obj; \
+		/usr/bin/printf "$(LGREEN)OK$(NC)\n"; \
 	fi;
 
 fclean: clean
-	@make -s -C libft/ fclean
-	@printf "[WOODY_WOODPACKER]: Removing $(PURPLE)$(NAME)$(NC)... "
-	@rm -f $(NAME)
-	@printf "$(LGREEN)OK$(NC)\n"
+	@/usr/bin/printf "[WOODY_WOODPACKER]: Removing $(PURPLE)$(NAME)$(NC)... "
+	@/bin/rm -f $(NAME) woody
+	@/usr/bin/printf "$(LGREEN)OK$(NC)\n"
 
 re: fclean all

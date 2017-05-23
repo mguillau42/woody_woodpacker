@@ -12,63 +12,67 @@
 
 #include <woody.h>
 
-int					main(int ac, char **av)
+void	ft_bzero(void *s, size_t n)
 {
-	int				fd;
-	void			*original;
-	unsigned char	*p;
-	struct stat		buf;
+	char	*str;
+	size_t	i;
 
-	if (ac != 2)
-	{
-		printf("usage: %s [elf64-binary]\n", av[0]);
-		return (1);
-	}
+	if (!s)
+		return ;
+	str = (char *)s;
+	i = 0;
+	while (i < n)
+		str[i++] = 0;
+}
 
-	if ((fd = open(av[1], O_RDONLY)) < 0)
-	{
-		perror("[!]");
-		return (1);
-	}
+int		ft_isprint(int c)
+{
+	if (c < 32 || c > 126)
+		return (0);
+	return (1);
+}
 
-	if (fstat(fd, &buf) < 0)
-	{
-		perror("[!]");
-		return (1);
-	}
+void	*ft_memalloc(size_t size)
+{
+	void	*mem;
 
-	if ((original = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
-			== MAP_FAILED)
-	{
-		perror("[!]");
-		return (1);
-	}
+	if (!(mem = malloc(size)))
+		return (NULL);
+	ft_bzero(mem, size);
+	return (mem);
+}
 
-	// check ELF file format
-	p = original;
-	if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS64)
-	{
-		printf("[+] Packing ELF64 %s\n", av[1]);
-		handle_elf64(original, buf.st_size);
-	}
-	else if (!ft_memcmp(ELFMAG, original, SELFMAG) && p[EI_CLASS] == ELFCLASS32)
-	{
-		printf("[!] Provided binary is an ELF32. To implement ?\n");
-		return (1);
-	}
-	else
-	{
-		printf("[!] Provided file is not an ELF binary\n");
-		return (1);
-	}
+int		ft_memcmp(const void *s1, const void *s2, size_t n)
+{
+	size_t		i;
 
-	// free memory
-	if (munmap(original, buf.st_size))
-	{
-		perror("[!]");
-		return (1);
-	}
-	close(fd);
+	i = -1;
+	while (++i < n)
+		if (*(unsigned char *)(s1 + i) != *(unsigned char *)(s2 + i))
+			return (*(unsigned char *)(s1 + i) - *(unsigned char *)(s2 + i));
+	return (0);
+}
 
+void	*ft_memcpy(void *dst, const void *src, size_t n)
+{
+	size_t		i;
+
+	i = -1;
+	while (++i < n)
+		*(unsigned char *)(dst + i) = *(unsigned char *)(src + i);
+	return (dst);
+}
+
+int		ft_strequ(char const *s1, char const *s2)
+{
+	int		i;
+
+	if (!s1 || !s2)
+		return (0);
+	i = 0;
+	while (s1[i] && s2[i] && s1[i] == s2[i])
+		i++;
+	if (s1[i] == s2[i])
+		return (1);
 	return (0);
 }

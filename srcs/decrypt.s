@@ -1,7 +1,19 @@
+; ----------------------------------------------------------------------------- ;
+;                                                                               ;
+;               ╦ ╦╔═╗╔═╗╔╦╗╦ ╦  ╦ ╦╔═╗╔═╗╔╦╗╔═╗╔═╗╔═╗╦╔═╔═╗╦═╗                 ;
+;               ║║║║ ║║ ║ ║║╚╦╝  ║║║║ ║║ ║ ║║╠═╝╠═╣║  ╠╩╗║╣ ╠╦╝                 ;
+;               ╚╩╝╚═╝╚═╝═╩╝ ╩   ╚╩╝╚═╝╚═╝═╩╝╩  ╩ ╩╚═╝╩ ╩╚═╝╩╚═                 ;
+;                                                                               ;
+;                                                                               ;
+;                          mguillau42 and FlorianVenturini                      ;
+;             <mguillau@student.42.fr> | <fventuri@student.42.fr>               ;
+;                                                                               ;
+; ----------------------------------------------------------------------------- ;
+
 section .text
 
 decrypt:
-	; SAVE STATE
+	; Save all flags + registers 
 	pushf
 	push rdi
 	push rsi
@@ -9,27 +21,29 @@ decrypt:
 	push rbx
 	push rcx
 	push rdx
-	; Print WOODY
-	mov rax, 1				; syscall write
-	mov rdi, rax			; stdout
-	lea rsi, [rel str_woody]	; ptr to the string to write
-	mov rdx, 16				; length of the string
+	; Print "....WOODY....."
+	mov rax, 1						; syscall write
+	mov rdi, rax					; stdout
+	lea rsi, [rel str_woody]		; ptr to the string to write
+	mov rdx, 16						; length of the string
 	syscall
-	; Key expansion, xmm0-10 will store key schedule
-	movdqu xmm11, [rel key]
+	; Key expansion --> xmm0-10 will store key schedule
+	movdqu xmm11, [rel key]			; Store default key in xmm11
 	call key_expansion
 	; Set loop counter
-	mov rcx, [rel len]
-	push rcx
-	shr rcx, 4				; len /= 16 --> number of loops to do
-	mov r8, [rel to_decrypt]		; value of to_decrypt
-	lea r9, [rel decrypt_value]		; adress of decrypt value
-	lea r10, [rel to_decrypt]		; adress of to_decrypt
-	sub r10, r9						; delta 
-	add r9, r10
-	sub r9, r8
-decrypt_value:
-	mov rdi, r9
+	mov rcx, [rel len]				; Get size of section to decrypt
+	push rcx						; Save len in stack
+	shr rcx, 4						; len /= 16 --> number of loops to do
+	;mov r8, [rel to_decrypt]		; value of to_decrypt (relative to its position)
+	;lea r9, [rel decrypt_value]		; position of the instruction
+	;lea r10, [rel to_decrypt]		; address of to_decrypt
+	;sub r10, r9						; store delta between those two addresses in r10
+	;add r9, r10						; ARE WE STUPID???
+	;sub r9, r8						; substract relative delta (section to decrypt is always before our new section)
+	lea rdi, [rel to_decrypt]		
+	sub rdi, [rdi]
+;decrypt_value:
+;	mov rdi, r9
 
 decrypt_loop:
 	; Loop condition --> rcx > 0
@@ -72,6 +86,7 @@ decrypt_xor_loop:
 	jmp decrypt_xor_loop
 
 decrypt_end:
+	; Get back all previously saved registers / flags
 	pop rdx
 	pop rcx
 	pop rbx
@@ -79,14 +94,17 @@ decrypt_end:
 	pop rsi
 	pop rdi
 	popf
-	mov r8, [rel to_jump]		; value of to_decrypt
-	lea r9, [rel jump_value]	; adress of decrypt value
-	lea r10, [rel to_jump]	; adress of to_decrypt
-	sub r10, r9					; delta
-	add r9, r10
-	sub r9, r8
-jump_value:
-	jmp r9
+	;mov r8, [rel to_jump]		; value of to_decrypt
+	;lea r9, [rel jump_value]	; adress of decrypt value
+	;lea r10, [rel to_jump]	; adress of to_decrypt
+	;sub r10, r9					; delta
+	;add r9, r10
+	;sub r9, r8
+	lea r8, [rel to_jump]
+	sub r8, [r8]
+	jmp r8
+;jump_value:
+	;jmp r9
 
 ; Fills registers xmm0-10 with the round keys
 key_expansion:
