@@ -19,7 +19,7 @@ static void		*load_original_binary(char *path, struct stat *buf)
 
 	if ((fd = open(path, O_RDONLY)) < 0)
 	{
-		perror("[!]");
+		printf("[!] %s: %s\n", path, strerror(errno));
 		return (NULL);
 	}
 	if (fstat(fd, buf) < 0)
@@ -73,6 +73,7 @@ static void		*key_as_parameter(char *arg)
 
 int				main(int ac, char **av)
 {
+	char			*filename;
 	struct stat		buf;
 	void			*original;
 	unsigned char	*p;
@@ -83,10 +84,11 @@ int				main(int ac, char **av)
 		printf("usage: %s [-k key (optionnal, hex format)] [elf64-binary]\n", av[0]);
 		return (EXIT_FAILURE);
 	}
+	filename = (ac == 2) ? av[1] : av[3];
 	if (ft_strequ(av[1], "-k") && ac == 4)
 		if (!(key = key_as_parameter(av[2])))
 			return (EXIT_FAILURE);
-	if (!(original = load_original_binary(av[1], &buf)))
+	if (!(original = load_original_binary(filename, &buf)))
 		return (EXIT_FAILURE);
 	// check ELF file format
 	p = original;

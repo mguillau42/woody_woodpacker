@@ -131,7 +131,7 @@ static int			encrypt_and_inject(void *packed, void *injected_section, void *orig
 		key = key_param;
 	printf("[+] key: ");
 	for (int i = 0; i < 16; ++i)
-		printf("%hhX", ((unsigned char *)key)[i]);
+		printf("%02hhX", ((unsigned char *)key)[i]);
 	printf("\n");
 	encrypt(packed + entry_shdr->sh_offset, entry_shdr->sh_size, key);
 	if (!inject_code(injected_section, entry_shdr, original, new_ep, key, shellcode))

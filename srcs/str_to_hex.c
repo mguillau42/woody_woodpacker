@@ -27,7 +27,6 @@ int			str_to_hex(const char *str)
 {
 	int		ret = 0;
 	int		val;
-	int		i;
 
 	if ((val = getval(str[0])) == -1)
 		return (-1);
@@ -44,6 +43,7 @@ char		*str_tolower(char *str)
 	while (str[++i])
 		if (str[i] < 91 && str[i] > 64)
 			str[i] += 32;
+	return (str);
 }
 
 int		ft_strlen(const char *s)

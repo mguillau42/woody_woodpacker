@@ -14,6 +14,7 @@
 # define WOODY_H
 
 # include <elf.h>
+# include <string.h>
 # include <errno.h>
 # include <fcntl.h>
 # include <stdio.h>
