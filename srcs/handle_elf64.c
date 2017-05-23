@@ -14,16 +14,13 @@
 
 /**
  * Insert code_size null bytes after the end of the last segment, in which we
- * will inject the new section's content
+ * will inject the new section's content.
  */
 static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, size_t original_size, size_t code_size)
 {
-	Elf64_Ehdr		*hdr;
-	size_t			len;
-	size_t len_bss = last->p_memsz - last->p_filesz;	// copy until end of DATA segment
+	size_t			len = last->p_offset + last->p_filesz;
+	size_t len_bss = last->p_memsz - last->p_filesz;
 
-	hdr = original;
-	len = last->p_offset + last->p_filesz;	// copy until end of DATA segment
 	ft_memcpy(packed, original, len);
 	packed += len;
 	original += len;
@@ -32,6 +29,10 @@ static void			*reserve_space(void *original, void *packed, Elf64_Phdr *last, siz
 	return (packed);
 }
 
+/**
+ * Reserve code_size space starting from the last segment.
+ * Returns a pointer to the injected section's content
+ */
 static void *			prepare_injection(Elf64_Ehdr *original, Elf64_Ehdr *packed, size_t original_size, size_t code_size)
 {
 	Elf64_Phdr		*last;
@@ -101,6 +102,11 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 	}
 }
 
+/**
+ * Generates a key if the provided key parameter is NULL.
+ * Encrypts the section containing the entrypoint using the key, then
+ * inject the decryption code.
+ */
 static int			encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep, void *shellcode, void *key)
 {
 	Elf64_Shdr		*entry_shdr = get_section_entry_64(packed, ((Elf64_Ehdr *)packed)->e_entry);
