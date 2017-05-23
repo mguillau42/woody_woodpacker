@@ -117,18 +117,24 @@ static void				update_segments(Elf64_Ehdr *hdr, size_t code_size)
 	}
 }
 
-static int		encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep)
+static int			encrypt_and_inject(void *packed, void *injected_section, void *original, Elf64_Addr new_ep, void *shellcode, void *key_param)
 {
-	void		*key = ft_memalloc(16);
-	Elf64_Shdr	*entry_shdr = get_section_entry_64(packed, ((Elf64_Ehdr *)packed)->e_entry);
+	void			*key;
+	Elf64_Shdr		*entry_shdr = get_section_entry_64(packed, ((Elf64_Ehdr *)packed)->e_entry);
 
-	syscall(SYS_getrandom, key, 16, 0);
+	if (!key_param)
+	{
+		key = ft_memalloc(16);
+		syscall(SYS_getrandom, key, 16, 0);
+	}
+	else
+		key = key_param;
 	printf("[+] key: ");
 	for (int i = 0; i < 16; ++i)
 		printf("%hhX", ((unsigned char *)key)[i]);
 	printf("\n");
 	encrypt(packed + entry_shdr->sh_offset, entry_shdr->sh_size, key);
-	if (!inject_code(injected_section, entry_shdr, original, new_ep, key))
+	if (!inject_code(injected_section, entry_shdr, original, new_ep, key, shellcode))
 	{
 		free(packed);
 		free(key);
@@ -137,19 +143,55 @@ static int		encrypt_and_inject(void *packed, void *injected_section, void *origi
 	return (EXIT_SUCCESS);
 }
 
-int				handle_elf64(void *original, size_t original_size)
+static void			*get_shellcode(size_t *code_size)
+{
+	int				fd;
+	void			*shellcode;
+	struct stat		buf;
+
+	if ((fd = open("./inject_me", O_RDONLY)) < 0)
+	{
+		printf("[!] An error occured while opening the necessary file inject_me\n");
+		perror("[!]");
+		return (NULL);
+	}
+	if (fstat(fd, &buf) < 0)
+	{
+		perror("[!]");
+		close(fd);
+		return (NULL);
+	}
+	if ((shellcode = mmap(0, buf.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0))
+			== MAP_FAILED)
+	{
+		perror("[!]");
+		close(fd);
+		return (NULL);
+	}
+	if (close(fd) < 0)
+	{
+		perror("[!]");
+		return (NULL);
+	}
+	(*code_size) = buf.st_size;
+	return (shellcode);
+}
+
+int				handle_elf64(void *original, size_t original_size, void *key_param)
 {
 	int			fd;
 	void		*packed; // packed file
 	void		*injected_section; // pointer to the new section
+	void		*shellcode;
 	size_t		packed_size; // size of the packed file
-	size_t		code_size; // size of the section to inject
+	size_t		code_size; // size of the shellcode
 	Elf64_Shdr	*shdr;
 	Elf64_Phdr	*last = get_last_segment_64(original);
 	size_t		len_bss = (last->p_memsz - last->p_filesz);
 	Elf64_Addr	new_entry_point;
 
-	code_size = 4096; // TODO to replace with actual code size !
+	if (!(shellcode = get_shellcode(&code_size)))
+		return (EXIT_FAILURE);
 	packed_size = original_size + code_size + sizeof(Elf64_Shdr) + len_bss;
 	if (!(packed = (void *)ft_memalloc(packed_size)))
 	{
@@ -164,7 +206,7 @@ int				handle_elf64(void *original, size_t original_size)
 
 	new_entry_point = update_packed(injected_section, packed, code_size, shdr);
 	update_segments(packed, code_size + len_bss);
-	if (encrypt_and_inject(packed, injected_section, original, new_entry_point))
+	if (encrypt_and_inject(packed, injected_section, original, new_entry_point, shellcode, key_param))
 		return (EXIT_FAILURE);
 	// change entry point
 	((Elf64_Ehdr *)packed)->e_entry = new_entry_point;
@@ -177,6 +219,11 @@ int				handle_elf64(void *original, size_t original_size)
 	write(fd, packed, packed_size);
 	free(packed);
 	if (close(fd) < 0)
+	{
+		perror("[!]");
+		return (EXIT_FAILURE);
+	}
+	if (munmap(shellcode, code_size))
 	{
 		perror("[!]");
 		return (EXIT_FAILURE);

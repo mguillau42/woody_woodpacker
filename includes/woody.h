@@ -35,12 +35,12 @@ Elf64_Shdr			*get_shdr_table_64(Elf64_Ehdr *hdr, size_t original_size);
 /*
 ** HANDLE_ELF64.C
 */
-int					handle_elf64(void *m, size_t original_size);
+int					handle_elf64(void *m, size_t original_size, void *key_param);
 
 /*
 ** INJECT.C
 */
-void				*inject_code(void *injected_section, Elf64_Shdr *entry_shdr, Elf64_Ehdr *original_hdr, Elf64_Addr new_entry_point, void *key);
+void				*inject_code(void *injected_section, Elf64_Shdr *entry_shdr, Elf64_Ehdr *original_hdr, Elf64_Addr new_entry_point, void *key, void *shellcode);
 
 /*
 ** LIBFT.C
