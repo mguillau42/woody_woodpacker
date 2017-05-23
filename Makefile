@@ -21,7 +21,8 @@ C_FILES =	get.c \
 			handle_elf64.c \
 			inject.c \
 			libft.c \
-			main.c
+			main.c \
+			str_to_hex.c
 
 S_FILES =	decrypt.s \
 			encrypt.s
