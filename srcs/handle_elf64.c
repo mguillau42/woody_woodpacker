@@ -178,9 +178,15 @@ int				handle_elf64(void *original, size_t original_size, void *key)
 	size_t		code_size; // size of the shellcode
 	Elf64_Shdr	*shdr;
 	Elf64_Phdr	*last = get_last_segment_64(original);
-	size_t		len_bss = (last->p_memsz - last->p_filesz);
+	size_t		len_bss;
 	Elf64_Addr	new_entry_point;
 
+	if (!last)
+	{
+		printf("[!] No segment found :(\n");
+		return (EXIT_FAILURE);
+	}
+	len_bss = (last->p_memsz - last->p_filesz);
 	if (!(shellcode = get_shellcode(&code_size)))
 		return (EXIT_FAILURE);
 	packed_size = original_size + code_size + sizeof(Elf64_Shdr) + len_bss;

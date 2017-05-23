@@ -52,15 +52,9 @@ def tests_woody(tests_array, args):
 
     for t in tests_array:
 
-        # try:
-        #     out , rc , err = execute("{} {}".format(BIN_PATH, t))
-        #     woody_out , woody_rc , woody_err = execute_timeout("{}".format("./woody"))
-        # except Exception as e:
-        #     print("[!] {} {}".format(t, str(e)))
-        #     continue
-
         out , rc , err = execute("{} {}".format(BIN_PATH, t))
         woody_out , woody_rc , woody_err = execute_timeout("{}".format("./woody"))
+        original_out, original_rc, original_err = execute_timeout("{}".format(t))
         ps_out , ps_rc , ps_err = execute("{}".format("ps -ax | grep ./woody | wc -l"))
 
         if int(ps_out) > 1:
@@ -73,12 +67,16 @@ def tests_woody(tests_array, args):
         elif woody_rc == -signal.SIGSEGV or "Segmentation fault" in woody_err:
             result = "\033[91mwoody: SEGMENTATION FAULT\033[0m"
             errors += 1
+        elif "Timeout" in woody_out and "Timeout" in original_out:
+            result = "\033[93mwoody: Both programs timedout \033[0m"
         elif "Timeout" in woody_out:
-            result = "\033[91mwoody: Timeout\033[0m"
+            result = "\033[91mwoody: Woody Timeout\033[0m"
             errors += 1
         elif rc != 0:
             result = "\033[91mERROR\033[0m: woody_woodpacker returned {}".format(rc)
             errors += 1
+        elif original_out not in woody_out:
+            result = "\033[93mWARNING\033[0m: woody_woodpacker and original output differs"
         else:
             result = "\033[92mOK\033[0m"
 

@@ -46,6 +46,8 @@ Elf64_Phdr				*get_last_segment_64(Elf64_Ehdr *hdr)
 	Elf64_Phdr		*phdr;
 
 	last = NULL;
+	if (!hdr->e_phoff)
+		return (NULL);
 	phdr = (void *)hdr + hdr->e_phoff;
 	for (int i = 0; i < hdr->e_phnum; i++)
 	{
